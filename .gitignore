@@ -1,0 +1,19 @@
+# Uploaded scholar documents (the folder itself is kept by .gitkeep)
+uploads/documents/*
+!uploads/documents/.gitkeep
+
+# Secrets and per-computer settings. NEVER commit these.
+config/gmail_credentials.json
+config/gmail_token.json
+config/app.local.php
+config/database.local.php
+
+# Dependencies (run `composer install` to recreate)
+vendor/
+
+# Editor and OS files
+.obsidian/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
