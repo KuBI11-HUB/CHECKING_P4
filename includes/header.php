@@ -23,6 +23,7 @@
         <?php else: ?>
             <a href="/GRANTED/scholar/dashboard.php">My Status</a>
             <a href="/GRANTED/scholar/upload_document.php">Upload Documents</a>
+            <a href="/GRANTED/scholar/notifications.php">Notifications</a>
         <?php endif; ?>
         <span class="site-header__role"><?php echo sanitize(currentRole()); ?></span>
         <a href="/GRANTED/auth/logout.php">Log out</a>

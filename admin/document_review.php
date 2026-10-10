@@ -6,6 +6,7 @@ $pdo = getDbConnection();
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $documentId = (int)($_POST['document_id'] ?? 0);
     $decision = $_POST['decision'] ?? '';
     $remarks = sanitize($_POST['remarks'] ?? '');
@@ -54,7 +55,7 @@ require_once __DIR__ . '/../includes/header.php';
             <tr>
                 <td><?php echo sanitize($d['full_name']); ?></td>
                 <td><?php echo sanitize($d['document_type']); ?></td>
-                <td><a href="/GRANTED/uploads/documents/<?php echo sanitize($d['filepath']); ?>" target="_blank">View file</a></td>
+                <td><a href="/GRANTED/admin/view_document.php?id=<?php echo (int)$d['id']; ?>" target="_blank">View file</a></td>
                 <td><span class="status-badge <?php
                     echo $d['status'] === 'Verified' ? 'status-badge--pass'
                         : ($d['status'] === 'Rejected' ? 'status-badge--fail' : 'status-badge--pending');
@@ -63,6 +64,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <td>
                     <?php if ($d['status'] === 'Pending Review'): ?>
                     <form method="POST" action="" style="display:flex; gap:0.4rem; align-items:center;">
+                        <?php echo csrfField(); ?>
                         <input type="hidden" name="document_id" value="<?php echo (int)$d['id']; ?>">
                         <input type="text" name="remarks" placeholder="remark (required if rejecting)" style="width:160px;">
                         <button type="submit" name="decision" value="Verified" class="btn" style="margin-top:0;">Verify</button>

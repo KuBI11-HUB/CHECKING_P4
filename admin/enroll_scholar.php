@@ -9,6 +9,7 @@ $success = '';
 $types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $fullName = sanitize($_POST['full_name'] ?? '');
     $program = sanitize($_POST['program'] ?? '');
     $yearLevel = (int)($_POST['year_level'] ?? 0);
@@ -66,6 +67,7 @@ require_once __DIR__ . '/../includes/header.php';
         <p>You need at least one <a href="/GRANTED/admin/scholarship_types.php">scholarship type</a> before enrolling a scholar.</p>
     <?php else: ?>
     <form method="POST" action="">
+        <?php echo csrfField(); ?>
         <label for="full_name">Full name</label>
         <input type="text" id="full_name" name="full_name" required>
 

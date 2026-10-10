@@ -4,8 +4,8 @@
  *
  * Phase 4: everything is scoped to the CURRENT term (CURRENT_SCHOOL_YEAR / CURRENT_SEMESTER in
  * config/app.php). Only rules, grades and documents of that term count.
- * DEADLINE still returns PENDING. Deadlines now live on DOCUMENT rules (rules.due_date); for now
- * they are used by the reminder script (cron/send_deadline_reminders.php), not by the status calculation.
+ * DEADLINE still returns PENDING. Deadlines live on DOCUMENT rules (rules.due_date): a DOCUMENT rule
+ * with no upload after its due date FAILS (Decision D1). The reminder script also uses due_date.
  */
 
 function compareValue($actual, string $operator, $threshold): bool
@@ -49,7 +49,11 @@ function evaluateRule(PDO $pdo, array $rule, array $scholar): string
             $stmt->execute([$scholar['id'], $rule['threshold_value'], CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
             $doc = $stmt->fetch();
 
-            if (!$doc) return 'PENDING';           // not uploaded yet
+            if (!$doc) {
+                // Decision D1: nothing uploaded and the due date has passed -> FAIL.
+                $pastDue = !empty($rule['due_date']) && date('Y-m-d') > $rule['due_date'];
+                return $pastDue ? 'FAIL' : 'PENDING';
+            }
             if ($doc['status'] === 'Verified') return 'PASS';
             if ($doc['status'] === 'Rejected') return 'FAIL';
             return 'PENDING';                       // uploaded, awaiting admin review
@@ -157,9 +161,10 @@ function recalculateGpaAndUnits(PDO $pdo, int $scholarId): void
 function getDocumentChecklist(PDO $pdo, int $scholarId, int $scholarshipTypeId): array
 {
     $stmt = $pdo->prepare(
-        "SELECT DISTINCT threshold_value AS document_type FROM rules
+        "SELECT threshold_value AS document_type, MIN(due_date) AS due_date FROM rules
          WHERE scholarship_type_id = ? AND rule_type = 'DOCUMENT' AND is_active = 1
-         AND school_year = ? AND semester = ?"
+         AND school_year = ? AND semester = ?
+         GROUP BY threshold_value"
     );
     $stmt->execute([$scholarshipTypeId, CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
     $required = $stmt->fetchAll();
@@ -176,6 +181,7 @@ function getDocumentChecklist(PDO $pdo, int $scholarId, int $scholarshipTypeId):
 
         $checklist[] = [
             'document_type' => $r['document_type'],
+            'due_date' => $r['due_date'],
             'status' => $doc['status'] ?? 'Not uploaded',
             'remarks' => $doc['remarks'] ?? null,
         ];

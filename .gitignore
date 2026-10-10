@@ -1,6 +1,7 @@
 # Uploaded scholar documents (the folder itself is kept by .gitkeep)
 uploads/documents/*
 !uploads/documents/.gitkeep
+!uploads/documents/.htaccess
 
 # Secrets and per-computer settings. NEVER commit these.
 config/gmail_credentials.json

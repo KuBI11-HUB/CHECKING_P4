@@ -17,6 +17,7 @@ if ($scholar) {
 }
 
 if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $documentType = sanitize($_POST['document_type'] ?? '');
     $file = $_FILES['document_file'] ?? null;
 
@@ -70,6 +71,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php foreach ($checklist as $item): ?>
             <li>
                 <span><?php echo sanitize($item['document_type']); ?>
+                    <?php echo dueDateHtml($item['due_date'], $item['status']); ?>
                     <?php if ($item['remarks']): ?><br><small><?php echo sanitize($item['remarks']); ?></small><?php endif; ?>
                 </span>
                 <span class="status-badge <?php
@@ -90,6 +92,7 @@ require_once __DIR__ . '/../includes/header.php';
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
     <?php if ($success): ?><p class="form-success"><?php echo sanitize($success); ?></p><?php endif; ?>
     <form method="POST" action="" enctype="multipart/form-data">
+        <?php echo csrfField(); ?>
         <label for="document_type">Which document is this?</label>
         <select id="document_type" name="document_type" required>
             <?php foreach ($checklist as $item): ?>

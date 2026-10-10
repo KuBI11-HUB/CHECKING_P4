@@ -7,6 +7,7 @@ $message = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $scholarId = (int)($_POST['scholar_id'] ?? 0);
     $subject = sanitize($_POST['subject'] ?? '');
     $grade = $_POST['grade'] ?? '';
@@ -51,6 +52,7 @@ require_once __DIR__ . '/../includes/header.php';
         <p>You need to <a href="/GRANTED/admin/enroll_scholar.php">enroll a scholar</a> first.</p>
     <?php else: ?>
     <form method="POST" action="">
+        <?php echo csrfField(); ?>
         <label for="scholar_id">Scholar</label>
         <select id="scholar_id" name="scholar_id" required>
             <?php foreach ($scholars as $s): ?>

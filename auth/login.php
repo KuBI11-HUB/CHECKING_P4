@@ -8,6 +8,7 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $email = sanitize($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -20,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password_hash'])) {
+            session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
@@ -40,8 +42,10 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
     <div class="login-layout__form">
         <h2>Log in</h2>
+        <?php if (isset($_GET['timeout'])): ?><p class="form-error">You were logged out after 30 minutes of inactivity. Please log in again.</p><?php endif; ?>
         <?php if ($error): ?><p class="form-error"><?php echo sanitize($error); ?></p><?php endif; ?>
         <form method="POST" action="">
+            <?php echo csrfField(); ?>
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required autofocus>
             <label for="password">Password</label>

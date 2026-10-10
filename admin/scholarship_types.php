@@ -6,6 +6,7 @@ $pdo = getDbConnection();
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $name = sanitize($_POST['name'] ?? '');
     $description = sanitize($_POST['description'] ?? '');
 
@@ -30,6 +31,7 @@ require_once __DIR__ . '/../includes/header.php';
     <h2>Add a new type</h2>
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
     <form method="POST" action="">
+        <?php echo csrfField(); ?>
         <label for="name">Name</label>
         <input type="text" id="name" name="name" placeholder="e.g. Academic Scholarship, CHED, DOST" required>
         <label for="description">Description</label>

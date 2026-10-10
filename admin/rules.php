@@ -6,6 +6,24 @@ $pdo = getDbConnection();
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+
+    if (isset($_POST['deactivate'])) {
+        $ruleId = (int)$_POST['deactivate'];
+        $stmt = $pdo->prepare('SELECT scholarship_type_id FROM rules WHERE id = ?');
+        $stmt->execute([$ruleId]);
+        $typeId = $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('UPDATE rules SET is_active = 0 WHERE id = ?');
+        $stmt->execute([$ruleId]);
+
+        // Without this, scholars keep an old FAIL/PASS caused by the rule that was just switched off.
+        if ($typeId !== false) {
+            reevaluateScholarshipType($pdo, (int)$typeId);
+        }
+        redirectTo('/GRANTED/admin/rules.php');
+    }
+
     $scholarshipTypeId = (int)($_POST['scholarship_type_id'] ?? 0);
     $ruleType = $_POST['rule_type'] ?? '';
     $operator = $_POST['operator'] ?? '';
@@ -13,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $schoolYear = sanitize($_POST['school_year'] ?? '');
     $semester = $_POST['semester'] ?? '';
     $dueDate = $_POST['due_date'] ?? '';
-    $dueDate = ($dueDate !== '') ? $dueDate : null;
+    $dueDate = ($dueDate !== '' && $ruleType === 'DOCUMENT') ? $dueDate : null;
     if ($dueDate !== null && (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) || strtotime($dueDate) === false)) {
         $dueDate = null;
     }
@@ -22,10 +40,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $validOperators = ['>=', '<=', '>', '<', '=='];
     $validSemesters = ['1st', '2nd', 'Summer'];
 
+    if ($ruleType === 'DOCUMENT') {
+        $operator = '==';
+    }
+
     if (!$scholarshipTypeId || !in_array($ruleType, $validRuleTypes, true)
         || !in_array($operator, $validOperators, true) || $thresholdValue === ''
         || $schoolYear === '' || !in_array($semester, $validSemesters, true)) {
         $message = 'Please fill in every field correctly.';
+    } elseif ($ruleType !== 'DOCUMENT' && !is_numeric($thresholdValue)) {
+        $message = 'The threshold for a GPA or unit load rule must be a number.';
     } else {
         $stmt = $pdo->prepare(
             'INSERT INTO rules (scholarship_type_id, rule_type, operator, threshold_value, school_year, semester, due_date, is_active)
@@ -36,22 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         reevaluateScholarshipType($pdo, $scholarshipTypeId);
         redirectTo('/GRANTED/admin/rules.php');
     }
-}
-
-if (isset($_GET['deactivate'])) {
-    $ruleId = (int)$_GET['deactivate'];
-    $stmt = $pdo->prepare('SELECT scholarship_type_id FROM rules WHERE id = ?');
-    $stmt->execute([$ruleId]);
-    $typeId = $stmt->fetchColumn();
-
-    $stmt = $pdo->prepare('UPDATE rules SET is_active = 0 WHERE id = ?');
-    $stmt->execute([$ruleId]);
-
-    // Without this, scholars keep an old FAIL/PASS caused by the rule that was just switched off.
-    if ($typeId !== false) {
-        reevaluateScholarshipType($pdo, (int)$typeId);
-    }
-    redirectTo('/GRANTED/admin/rules.php');
 }
 
 $types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
@@ -74,6 +82,7 @@ require_once __DIR__ . '/../includes/header.php';
         <p>You need at least one <a href="/GRANTED/admin/scholarship_types.php">scholarship type</a> before adding a rule.</p>
     <?php else: ?>
     <form method="POST" action="">
+        <?php echo csrfField(); ?>
         <label for="scholarship_type_id">Scholarship type</label>
         <select id="scholarship_type_id" name="scholarship_type_id" required>
             <?php foreach ($types as $t): ?>
@@ -88,6 +97,7 @@ require_once __DIR__ . '/../includes/header.php';
             <option value="DOCUMENT">Document</option>
         </select>
 
+        <div id="operator_group">
         <label for="operator">Operator</label>
         <select id="operator" name="operator" required>
             <option value=">=">&gt;= (at least)</option>
@@ -96,8 +106,9 @@ require_once __DIR__ . '/../includes/header.php';
             <option value="<"><  (less than)</option>
             <option value="==">== (exactly)</option>
         </select>
+        </div>
 
-        <label for="threshold_value">Threshold value</label>
+        <label for="threshold_value" id="threshold_label">Minimum / maximum value</label>
         <input type="text" id="threshold_value" name="threshold_value" placeholder="e.g. 2.00 for GPA, 18 for units" required>
 
         <label for="school_year">School year</label>
@@ -110,11 +121,31 @@ require_once __DIR__ . '/../includes/header.php';
             <option value="Summer" <?php echo (CURRENT_SEMESTER === 'Summer') ? 'selected' : ''; ?>>Summer</option>
         </select>
 
+        <div id="due_date_group">
         <label for="due_date">Document deadline (optional)</label>
         <input type="date" id="due_date" name="due_date">
+        </div>
 
         <button type="submit">Add rule</button>
     </form>
+    <script>
+        var ruleType = document.getElementById('rule_type');
+        var threshold = document.getElementById('threshold_value');
+
+        function updateRuleForm() {
+            var isDocument = ruleType.value === 'DOCUMENT';
+            document.getElementById('operator_group').style.display = isDocument ? 'none' : '';
+            document.getElementById('due_date_group').style.display = isDocument ? '' : 'none';
+            document.getElementById('threshold_label').textContent = isDocument ? 'Document name (exact)' : 'Minimum / maximum value';
+            threshold.type = isDocument ? 'text' : 'number';
+            threshold.step = 'any';
+            threshold.min = '0';
+            threshold.placeholder = isDocument ? 'e.g. Certificate of Registration' : 'e.g. 2.00 for GPA, 18 for units';
+        }
+
+        ruleType.addEventListener('change', updateRuleForm);
+        updateRuleForm();
+    </script>
     <?php endif; ?>
 </div>
 
@@ -131,7 +162,10 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php if (!$r['is_active']): ?><em>(inactive)</em><?php endif; ?>
                 </span>
                 <?php if ($r['is_active']): ?>
-                    <a href="?deactivate=<?php echo (int)$r['id']; ?>" onclick="return confirm('Deactivate this rule?');">Deactivate</a>
+                    <form method="POST" action="" style="display:inline;">
+                        <?php echo csrfField(); ?>
+                        <button type="submit" name="deactivate" value="<?php echo (int)$r['id']; ?>" onclick="return confirm('Deactivate this rule?');" style="margin:0; padding:0; background:none; color:var(--color-accent); font-size:inherit; font-weight:normal; text-decoration:underline;">Deactivate</button>
+                    </form>
                 <?php endif; ?>
             </li>
         <?php endforeach; ?>
