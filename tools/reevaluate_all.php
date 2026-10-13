@@ -6,6 +6,11 @@
  *
  *   C:\xampp\php\php.exe tools\reevaluate_all.php
  *
+ * Run it EVERY DAY too, before the deadline reminders (for example 07:55, with the reminders at 08:00).
+ * A missed deadline only turns a DOCUMENT rule into FAIL when the engine runs, and nothing else runs
+ * it when a date simply passes. Set it up in Task Scheduler like the reminders (docs/GMAIL_API_SETUP.md, C6).
+ * It only runs from the command line; a browser request gets a 404.
+ *
  * Note: if MAIL_ENABLED is true, scholars whose status changes will be emailed.
  */
 if (PHP_SAPI !== 'cli') {

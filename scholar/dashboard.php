@@ -26,15 +26,8 @@ if ($scholar) {
     $stmt->execute([$scholar['id']]);
     $grades = $stmt->fetchAll();
 
-    $stmt = $pdo->prepare(
-        'SELECT e.result, r.rule_type, r.operator, r.threshold_value FROM evaluations e
-         JOIN rules r ON r.id = e.rule_id
-         WHERE e.scholar_id = ? AND r.is_active = 1 AND r.school_year = ? AND r.semester = ?
-         ORDER BY r.rule_type'
-    );
-    // Only active rules of the current term: old results stay in the table but must not be shown.
-    $stmt->execute([$scholar['id'], CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
-    $evaluations = $stmt->fetchAll();
+    // Same function the admin detail page uses: active rules of the current term only.
+    $evaluations = getRuleBreakdown($pdo, (int)$scholar['id'], (int)$scholar['scholarship_type_id']);
 
     $checklist = getDocumentChecklist($pdo, $scholar['id'], $scholar['scholarship_type_id']);
     foreach ($checklist as $item) {
@@ -94,8 +87,8 @@ require_once __DIR__ . '/../includes/header.php';
     <ul class="rule-list">
         <?php foreach ($evaluations as $e): ?>
             <li>
-                <span><?php echo sanitize($e['rule_type']); ?> (<?php echo sanitize($e['operator']); ?> <?php echo sanitize($e['threshold_value']); ?>)</span>
-                <span class="status-badge <?php echo statusBadgeClass($e['result']); ?>"><?php echo sanitize($e['result']); ?></span>
+                <span><?php echo h(describeRule($e)); ?></span>
+                <span class="status-badge <?php echo statusBadgeClass($e['result']); ?>"><?php echo h($e['result']); ?></span>
             </li>
         <?php endforeach; ?>
         <?php if (empty($evaluations)): ?>

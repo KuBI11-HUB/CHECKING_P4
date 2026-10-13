@@ -10,22 +10,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $scholarId = (int)($_POST['scholar_id'] ?? 0);
     $subject = sanitize($_POST['subject'] ?? '');
-    $grade = $_POST['grade'] ?? '';
-    $units = (int)($_POST['units'] ?? 0);
+    $grade = trim((string)($_POST['grade'] ?? ''));
+    $units = filter_var($_POST['units'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10]]);
     $schoolYear = sanitize($_POST['school_year'] ?? '');
     $semester = $_POST['semester'] ?? '';
 
-    if (!$scholarId || $subject === '' || $grade === '' || !$units || $schoolYear === '' || $semester === '') {
-        $message = 'Please fill in every field.';
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM scholars WHERE id = ?');
+    $stmt->execute([$scholarId]);
+    $scholarExists = (int)$stmt->fetchColumn() > 0;
+
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM grades WHERE scholar_id = ? AND subject = ? AND school_year = ? AND semester = ?'
+    );
+    $stmt->execute([$scholarId, $subject, $schoolYear, $semester]);
+    $isDuplicate = (int)$stmt->fetchColumn() > 0;
+
+    if (!$scholarExists) {
+        $message = 'Please choose a scholar.';
+    } elseif ($subject === '') {
+        $message = 'Please enter a subject.';
+    } elseif (!preg_match('/^\d+(\.\d{1,2})?$/', $grade) || (float)$grade < 1 || (float)$grade > 5) {
+        $message = 'Grade must be a number from 1.00 to 5.00 (up to two decimals).';
+    } elseif ($units === false) {
+        $message = 'Units must be a whole number from 1 to 10.';
+    } elseif (!preg_match('/^\d{4}-\d{4}$/', $schoolYear)) {
+        $message = 'School year must look like 2026-2027.';
+    } elseif (!in_array($semester, ['1st', '2nd', 'Summer'], true)) {
+        $message = 'Semester must be 1st, 2nd or Summer.';
+    } elseif ($isDuplicate) {
+        $message = 'A grade for "' . plainText($subject) . '" is already recorded for this scholar in '
+            . $schoolYear . ' ' . $semester . '. Duplicate grades are not allowed.';
     } else {
         $stmt = $pdo->prepare(
             'INSERT INTO grades (scholar_id, subject, grade, units, school_year, semester) VALUES (?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([$scholarId, $subject, $grade, $units, $schoolYear, $semester]);
 
-        // Recalculate this scholar's GPA/units, then re-run the rule engine —
-        // this is the auto-trigger from the pseudocode (Module 3 -> Module 5).
-        recalculateGpaAndUnits($pdo, $scholarId);
+        // evaluateScholar() recalculates GPA/units for the current term, then re-runs the rules.
         $status = evaluateScholar($pdo, $scholarId);
 
         $success = 'Grade recorded. Recalculated status: ' . sanitize($status ?? 'PENDING') . '.';
@@ -66,13 +87,13 @@ require_once __DIR__ . '/../includes/header.php';
         <input type="text" id="subject" name="subject" placeholder="e.g. CS 101" required>
 
         <label for="grade">Grade</label>
-        <input type="text" id="grade" name="grade" placeholder="e.g. 1.75 or 3.50" required>
+        <input type="number" id="grade" name="grade" step="0.01" min="1" max="5" placeholder="e.g. 1.75 or 3.50" required>
 
         <label for="units">Units</label>
         <input type="number" id="units" name="units" min="1" max="10" required>
 
         <label for="school_year">School year</label>
-        <input type="text" id="school_year" name="school_year" value="<?php echo CURRENT_SCHOOL_YEAR; ?>" placeholder="2026-2027" required>
+        <input type="text" id="school_year" name="school_year" value="<?php echo CURRENT_SCHOOL_YEAR; ?>" placeholder="2026-2027" pattern="\d{4}-\d{4}" title="Format: 2026-2027" required>
 
         <label for="semester">Semester</label>
         <select id="semester" name="semester" required>

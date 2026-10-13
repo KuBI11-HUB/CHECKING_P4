@@ -5,7 +5,7 @@ How to build the GRANTED database from scratch, what every table and column is f
 - **Database name:** `granted_db`
 - **Engine:** MySQL / MariaDB (the one that comes with XAMPP), charset utf8mb4 through PDO
 - **Size:** 9 tables (Phases 1–5)
-- **Files you need:** `database/granted_schema.sql` (fresh install) or `database/phase4-5_migration.sql` (you already have the Phase 1–3 database)
+- **Files you need:** `database/granted_schema.sql` (fresh install), or the applicable migration files (existing database)
 - **Where these files live:** `database/` inside the project, which is in GitHub.
 
 ---
@@ -383,6 +383,9 @@ Then repeat Steps 3–5 of [Section 2](#2-set-up-from-scratch-do-these-in-order)
 
 **You already have the Phase 1–3 database (7 tables) and just need the new parts**
 Don't re-import the full schema. In phpMyAdmin click `granted_db` → **Import** → choose `database/phase4-5_migration.sql`. It adds `notifications`, `renewal_decisions` and the `rules.due_date` column, keeps all your data, and is safe to run twice.
+
+**Enable duplicate-upload protection on an existing database**
+Import `database/document_submission_dedup_migration.sql` once in phpMyAdmin after the other migrations. It adds a unique submission token to new document uploads and preserves existing documents. Fresh databases already have this column and do not need this migration.
 
 ---
 

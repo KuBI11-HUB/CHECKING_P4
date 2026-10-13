@@ -3,18 +3,11 @@ $requiredRole = 'admin';
 require_once __DIR__ . '/../includes/auth_check.php';
 
 $pdo = getDbConnection();
-$scholars = $pdo->query(
-    'SELECT s.*, st.name AS type_name FROM scholars s
-     JOIN scholarship_types st ON st.id = s.scholarship_type_id
-     ORDER BY s.full_name'
-)->fetchAll();
-$grades = $pdo->query(
-    'SELECT g.subject, g.grade, g.units, g.school_year, g.semester, s.full_name
-     FROM grades g
-     JOIN scholars s ON s.id = g.scholar_id
-     ORDER BY s.full_name, g.school_year DESC,
-         FIELD(g.semester, "Summer", "2nd", "1st") DESC, g.subject'
-)->fetchAll();
+$filters = normalizeResultFilters($_GET);
+$options = getResultFilterOptions($pdo);
+$results = getResults($pdo, $filters);
+$totalScholars = (int)$pdo->query('SELECT COUNT(*) FROM scholars')->fetchColumn();
+$exportQuery = http_build_query(array_filter($filters, fn($value) => $value !== '' && $value !== 0));
 
 $pageTitle = 'Admin Dashboard';
 require_once __DIR__ . '/../includes/header.php';
@@ -29,48 +22,67 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="card">
-    <h2>Compliance results</h2>
-    <table class="data-table">
-        <thead>
-            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th>GPA (<?php echo sanitize(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>)</th><th>Units (current term)</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-        <?php foreach ($scholars as $s): ?>
-            <tr>
-                <td><?php echo sanitize($s['full_name']); ?></td>
-                <td><?php echo sanitize($s['program'] ?: '—'); ?></td>
-                <td><?php echo sanitize($s['type_name']); ?></td>
-                <td><?php echo $s['current_gpa'] !== null ? sanitize((string)$s['current_gpa']) : '—'; ?></td>
-                <td><?php echo $s['current_units'] !== null ? sanitize((string)$s['current_units']) : '—'; ?></td>
-                <td><span class="status-badge <?php echo statusBadgeClass($s['current_status']); ?>"><?php echo sanitize($s['current_status']); ?></span></td>
-            </tr>
-        <?php endforeach; ?>
-        <?php if (empty($scholars)): ?>
-            <tr><td colspan="6">No scholars enrolled yet.</td></tr>
-        <?php endif; ?>
-        </tbody>
-    </table>
-</div>
+    <h2>Results</h2>
 
-<div class="card">
-    <h2>Recorded grades (all terms)</h2>
+    <form method="GET" action="/GRANTED/admin/dashboard.php" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end; margin-bottom:1.25rem;">
+        <div style="flex:1 1 12rem;">
+            <label for="program">Program</label>
+            <select id="program" name="program">
+                <option value="">All programs</option>
+                <?php foreach ($options['programs'] as $program): ?>
+                    <?php // The value stays exactly as stored so it matches in SQL; only the label is decoded. ?>
+                    <option value="<?php echo sanitize($program); ?>" <?php echo $filters['program'] === $program ? 'selected' : ''; ?>><?php echo h($program); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div style="flex:1 1 10rem;">
+            <label for="status">Calculated status</label>
+            <select id="status" name="status">
+                <option value="">All statuses</option>
+                <?php foreach ($options['statuses'] as $status): ?>
+                    <option value="<?php echo h($status); ?>" <?php echo $filters['status'] === $status ? 'selected' : ''; ?>><?php echo h($status); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div style="flex:1 1 12rem;">
+            <label for="scholarship_type_id">Scholarship type</label>
+            <select id="scholarship_type_id" name="scholarship_type_id">
+                <option value="">All types</option>
+                <?php foreach ($options['types'] as $type): ?>
+                    <option value="<?php echo (int)$type['id']; ?>" <?php echo $filters['scholarship_type_id'] === (int)$type['id'] ? 'selected' : ''; ?>><?php echo h($type['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            <button type="submit" style="margin-top:0;">Apply filters</button>
+            <a class="btn" href="/GRANTED/admin/dashboard.php" style="margin-top:0;">Clear filters</a>
+            <a class="btn" href="/GRANTED/admin/export_results.php<?php echo $exportQuery !== '' ? '?' . sanitize($exportQuery) : ''; ?>" style="margin-top:0;">Export CSV</a>
+        </div>
+    </form>
+
+    <p style="margin-bottom:1rem;">
+        Results for <strong><?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?></strong>.
+        Showing <?php echo count($results); ?> of <?php echo $totalScholars; ?> scholars.
+    </p>
+
     <table class="data-table">
         <thead>
-            <tr><th>Scholar</th><th>Subject</th><th>Grade</th><th>Units</th><th>School year</th><th>Semester</th></tr>
+            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th>GPA</th><th>Units</th><th>Calculated status</th><th>Office decision</th></tr>
         </thead>
         <tbody>
-        <?php foreach ($grades as $grade): ?>
+        <?php foreach ($results as $s): ?>
             <tr>
-                <td><?php echo sanitize($grade['full_name']); ?></td>
-                <td><?php echo sanitize($grade['subject']); ?></td>
-                <td><?php echo sanitize((string)$grade['grade']); ?></td>
-                <td><?php echo (int)$grade['units']; ?></td>
-                <td><?php echo sanitize($grade['school_year']); ?></td>
-                <td><?php echo sanitize($grade['semester']); ?></td>
+                <td><a href="/GRANTED/admin/scholar_detail.php?id=<?php echo (int)$s['id']; ?>"><?php echo h($s['full_name']); ?></a></td>
+                <td><?php echo $s['program'] ? h($s['program']) : '—'; ?></td>
+                <td><?php echo h($s['type_name']); ?></td>
+                <td><?php echo $s['current_gpa'] !== null ? h((string)$s['current_gpa']) : '—'; ?></td>
+                <td><?php echo $s['current_units'] !== null ? h((string)$s['current_units']) : '—'; ?></td>
+                <td><span class="status-badge <?php echo statusBadgeClass($s['current_status']); ?>"><?php echo h($s['current_status']); ?></span></td>
+                <td><?php echo $s['office_decision'] ? h(str_replace('_', ' ', $s['office_decision'])) : '—'; ?></td>
             </tr>
         <?php endforeach; ?>
-        <?php if (empty($grades)): ?>
-            <tr><td colspan="6">No grades have been recorded yet.</td></tr>
+        <?php if (empty($results)): ?>
+            <tr><td colspan="7"><?php echo $totalScholars === 0 ? 'No scholars enrolled yet.' : 'No scholars match these filters.'; ?></td></tr>
         <?php endif; ?>
         </tbody>
     </table>

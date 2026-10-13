@@ -66,6 +66,7 @@ button[type="submit"], .btn {
     font-family: var(--font-body); font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
 }
 button[type="submit"]:hover, .btn:hover { background: var(--color-accent-hover); }
+button[type="submit"]:disabled { background: #777; cursor: wait; opacity: 0.8; }
 
 .form-error { background: #FBEAE4; color: var(--color-fail); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
 .form-success { background: #E4F0EA; color: var(--color-pass); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }

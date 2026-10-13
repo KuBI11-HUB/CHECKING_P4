@@ -166,6 +166,7 @@ A status also changes when an admin adds or deactivates a rule, because every sc
    - **Add arguments:** `C:\xampp\htdocs\GRANTED\cron\send_deadline_reminders.php`
    - **Start in:** `C:\xampp\htdocs\GRANTED`
 4. Finish. Then right-click the task → **Run** to test it.
+5. **Also schedule the daily re-evaluation, 5 minutes earlier.** Make a second task the same way (Daily, **7:55 AM**) with **Add arguments:** `C:\xampp\htdocs\GRANTED\tools\reevaluate_all.php`. It refreshes every scholar's status, so a document deadline that passed overnight turns into FAIL before the 8:00 reminders run.
 
 **Who gets a reminder:** a scholar gets **one** reminder per document rule when the rule is active for the current term, its **Document deadline** is today or within the next `DEADLINE_REMINDER_DAYS` days (default 7), and the scholar's latest upload of that document is missing or Rejected. A document that is Verified, or uploaded and waiting for review, needs no reminder. A reminder that failed to send is retried on the next run.
 

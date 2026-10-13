@@ -63,6 +63,7 @@ CREATE TABLE documents (
     scholar_id INT NOT NULL,
     document_type VARCHAR(100) NOT NULL,
     filepath VARCHAR(255) NOT NULL,
+    submission_token CHAR(64) NOT NULL,
     status ENUM('Pending Review', 'Verified', 'Rejected') DEFAULT 'Pending Review',
     school_year VARCHAR(9) NOT NULL,
     semester ENUM('1st', '2nd', 'Summer') NOT NULL,
@@ -70,6 +71,7 @@ CREATE TABLE documents (
     remarks TEXT,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reviewed_at TIMESTAMP NULL,
+    UNIQUE KEY unique_document_submission_token (submission_token),
     FOREIGN KEY (scholar_id) REFERENCES scholars(id),
     FOREIGN KEY (reviewed_by) REFERENCES users(id)
 );

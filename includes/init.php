@@ -14,6 +14,7 @@ if (is_file(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/../vendor/autoload.php';
 }
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/results.php';
 
 if (isLoggedIn()) {
     if (time() - ($_SESSION['last_activity'] ?? time()) > SESSION_IDLE_TIMEOUT) {
