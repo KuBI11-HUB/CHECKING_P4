@@ -93,7 +93,23 @@ table.data-table th { background: #F1F0EB; font-weight: 600; color: var(--color-
 table.data-table tr:last-child td { border-bottom: none; }
 
 .rule-list { list-style: none; }
-.rule-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border); }
+.rule-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.85rem 0; border-bottom: 1px solid var(--color-border); }
 .rule-list li:last-child { border-bottom: none; }
+.rule-list__details { flex: 1; min-width: 0; }
+.rule-list__details strong { display: block; margin-bottom: 0.15rem; }
+.rule-list__summary { color: var(--color-ink-soft); }
+.rule-list__actions { display: flex; flex-shrink: 0; align-items: center; gap: 0.5rem; }
+.rule-list__actions form { margin: 0; }
+.rule-list__action { display: inline-block; min-width: 5rem; padding: 0.4rem 0.75rem; border: 1px solid var(--color-accent); border-radius: 4px; font: inherit; font-size: 0.9rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
+.rule-list__action--edit { color: var(--color-accent); background: var(--color-surface); }
+.rule-list__action--edit:hover { color: white; background: var(--color-accent); }
+.rule-list__actions button[type="submit"].rule-list__action { margin: 0; }
+.rule-list__action--deactivate { color: var(--color-fail); background: var(--color-surface); border-color: var(--color-fail); }
+.rule-list__action--deactivate:hover { color: white; background: var(--color-fail); }
+
+@media (max-width: 600px) {
+    .rule-list li { align-items: stretch; flex-direction: column; gap: 0.75rem; }
+    .rule-list__actions { align-self: flex-start; }
+}
 
 .page-actions { margin-bottom: 1.5rem; }

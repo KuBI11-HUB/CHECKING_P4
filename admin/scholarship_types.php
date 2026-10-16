@@ -43,16 +43,17 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="card">
     <h2>Existing types</h2>
     <table class="data-table">
-        <thead><tr><th>Name</th><th>Description</th></tr></thead>
+        <thead><tr><th>Name</th><th>Description</th><th>Action</th></tr></thead>
         <tbody>
         <?php foreach ($types as $t): ?>
             <tr>
                 <td><?php echo sanitize($t['name']); ?></td>
                 <td><?php echo sanitize($t['description']); ?></td>
+                <td><a href="/GRANTED/admin/edit_scholarship_type.php?id=<?php echo (int)$t['id']; ?>">Edit</a></td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($types)): ?>
-            <tr><td colspan="2">No scholarship types yet.</td></tr>
+            <tr><td colspan="3">No scholarship types yet.</td></tr>
         <?php endif; ?>
         </tbody>
     </table>

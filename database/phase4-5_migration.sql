@@ -1,5 +1,5 @@
 -- GRANTED — Migration for Phase 4 (notifications/deadlines) and Phase 5 (renewal decisions)
--- Adds 3 tables (notifications, notification_status_events, renewal_decisions)
+-- Adds 2 tables (notifications, renewal_decisions)
 -- and 1 column (rules.due_date).
 -- Run this ONCE on an existing granted_db that already has the Phase 1-3 tables.
 -- It does not touch or delete any existing data.
@@ -31,24 +31,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_notif_scholar (scholar_id, created_at),
     INDEX idx_notif_reminder (scholar_id, rule_id, type)
 );
-
--- Remember status-change pairs independently from notification history so repeated
--- evaluations cannot create or send the same scholar/status-pair email again.
-CREATE TABLE IF NOT EXISTS notification_status_events (
-    scholar_id INT NOT NULL,
-    old_status ENUM('PASS', 'FAIL', 'PENDING', 'INITIAL') NOT NULL,
-    new_status ENUM('PASS', 'FAIL', 'PENDING') NOT NULL,
-    notification_id INT DEFAULT NULL,
-    PRIMARY KEY (scholar_id, old_status, new_status),
-    FOREIGN KEY (scholar_id) REFERENCES scholars(id),
-    FOREIGN KEY (notification_id) REFERENCES notifications(id)
-);
-
-INSERT IGNORE INTO notification_status_events (scholar_id, old_status, new_status, notification_id)
-SELECT scholar_id, COALESCE(old_status, 'INITIAL'), new_status, MIN(id)
-FROM notifications
-WHERE type = 'STATUS_CHANGE' AND new_status IS NOT NULL
-GROUP BY scholar_id, COALESCE(old_status, 'INITIAL'), new_status;
 
 -- ---------------------------------------------------------------
 -- 2. renewal_decisions  (Phase 5)

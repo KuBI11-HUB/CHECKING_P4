@@ -24,44 +24,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirectTo('/GRANTED/admin/rules.php');
     }
 
-    $scholarshipTypeId = (int)($_POST['scholarship_type_id'] ?? 0);
-    $ruleType = $_POST['rule_type'] ?? '';
-    $operator = $_POST['operator'] ?? '';
-    $thresholdValue = sanitize($_POST['threshold_value'] ?? '');
-    $schoolYear = sanitize($_POST['school_year'] ?? '');
-    $semester = $_POST['semester'] ?? '';
-    $dueDate = $_POST['due_date'] ?? '';
-    $dueDate = ($dueDate !== '' && $ruleType === 'DOCUMENT') ? $dueDate : null;
-    if ($dueDate !== null && (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) || strtotime($dueDate) === false)) {
-        $dueDate = null;
-    }
-
-    $validRuleTypes = ['GPA', 'UNIT_LOAD', 'DOCUMENT'];
-    $validOperators = ['>=', '<=', '>', '<', '=='];
-    $validSemesters = ['1st', '2nd', 'Summer'];
-
-    if ($ruleType === 'DOCUMENT') {
-        $operator = '==';
-    }
-
-    if (!$scholarshipTypeId || !in_array($ruleType, $validRuleTypes, true)
-        || !in_array($operator, $validOperators, true) || $thresholdValue === ''
-        || $schoolYear === '' || !in_array($semester, $validSemesters, true)) {
-        $message = 'Please fill in every field correctly.';
-    } elseif ($ruleType !== 'DOCUMENT' && !is_numeric($thresholdValue)) {
-        $message = 'The threshold for a GPA or unit load rule must be a number.';
+    $result = validateRuleInput($pdo, $_POST);
+    if ($result['error'] !== null) {
+        $message = $result['error'];
     } else {
+        $v = $result['values'];
         $stmt = $pdo->prepare(
             'INSERT INTO rules (scholarship_type_id, rule_type, operator, threshold_value, school_year, semester, due_date, is_active)
              VALUES (?, ?, ?, ?, ?, ?, ?, 1)'
         );
-        $stmt->execute([$scholarshipTypeId, $ruleType, $operator, $thresholdValue, $schoolYear, $semester, $dueDate]);
+        $stmt->execute([$v['scholarship_type_id'], $v['rule_type'], $v['operator'], $v['threshold_value'],
+                        $v['school_year'], $v['semester'], $v['due_date']]);
         // Scholars' statuses must reflect the new rule right away, not only after their next grade save.
-        reevaluateScholarshipType($pdo, $scholarshipTypeId);
+        reevaluateScholarshipType($pdo, $v['scholarship_type_id']);
         redirectTo('/GRANTED/admin/rules.php');
     }
 }
 
+$flash = takeFlash();
 $types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
 $rules = $pdo->query(
     'SELECT r.*, st.name AS type_name FROM rules r
@@ -74,6 +54,10 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1>Rules</h1>
+
+<?php if ($flash): ?>
+    <div class="shell-notice" style="margin-top:0; margin-bottom:1.5rem;"><?php echo h($flash); ?></div>
+<?php endif; ?>
 
 <div class="card">
     <h2>Add a rule</h2>
@@ -153,20 +137,25 @@ require_once __DIR__ . '/../includes/header.php';
     <h2>Existing rules</h2>
     <ul class="rule-list">
         <?php foreach ($rules as $r): ?>
-            <li>
-                <span>
-                    <strong><?php echo sanitize($r['type_name']); ?></strong> —
-                    <?php echo sanitize($r['rule_type']); ?> <?php echo sanitize($r['operator']); ?> <?php echo sanitize($r['threshold_value']); ?>
-                    (<?php echo sanitize($r['school_year']); ?>, <?php echo sanitize($r['semester']); ?>)
-                    <?php if (!empty($r['due_date'])): ?>— due <?php echo sanitize($r['due_date']); ?><?php endif; ?>
-                    <?php if (!$r['is_active']): ?><em>(inactive)</em><?php endif; ?>
-                </span>
-                <?php if ($r['is_active']): ?>
-                    <form method="POST" action="" style="display:inline;">
-                        <?php echo csrfField(); ?>
-                        <button type="submit" name="deactivate" value="<?php echo (int)$r['id']; ?>" onclick="return confirm('Deactivate this rule?');" style="margin:0; padding:0; background:none; color:var(--color-accent); font-size:inherit; font-weight:normal; text-decoration:underline;">Deactivate</button>
-                    </form>
-                <?php endif; ?>
+            <li class="rule-list__item">
+                <div class="rule-list__details">
+                    <strong><?php echo sanitize($r['type_name']); ?></strong>
+                    <span class="rule-list__summary">
+                        <?php echo sanitize($r['rule_type']); ?> <?php echo sanitize($r['operator']); ?> <?php echo sanitize($r['threshold_value']); ?>
+                        (<?php echo sanitize($r['school_year']); ?>, <?php echo sanitize($r['semester']); ?>)
+                        <?php if (!empty($r['due_date'])): ?>— due <?php echo sanitize($r['due_date']); ?><?php endif; ?>
+                        <?php if (!$r['is_active']): ?><em>(inactive)</em><?php endif; ?>
+                    </span>
+                </div>
+                <div class="rule-list__actions">
+                    <a class="rule-list__action rule-list__action--edit" href="/GRANTED/admin/edit_rule.php?id=<?php echo (int)$r['id']; ?>">Edit</a>
+                    <?php if ($r['is_active']): ?>
+                        <form method="POST" action="">
+                            <?php echo csrfField(); ?>
+                            <button class="rule-list__action rule-list__action--deactivate" type="submit" name="deactivate" value="<?php echo (int)$r['id']; ?>" onclick="return confirm('Deactivate this rule?');">Deactivate</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </li>
         <?php endforeach; ?>
         <?php if (empty($rules)): ?><li>No rules yet.</li><?php endif; ?>

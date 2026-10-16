@@ -108,16 +108,6 @@ CREATE TABLE notifications (
     INDEX idx_notif_reminder (scholar_id, rule_id, type)
 );
 
-CREATE TABLE notification_status_events (
-    scholar_id INT NOT NULL,
-    old_status ENUM('PASS', 'FAIL', 'PENDING', 'INITIAL') NOT NULL,
-    new_status ENUM('PASS', 'FAIL', 'PENDING') NOT NULL,
-    notification_id INT DEFAULT NULL,
-    PRIMARY KEY (scholar_id, old_status, new_status),
-    FOREIGN KEY (scholar_id) REFERENCES scholars(id),
-    FOREIGN KEY (notification_id) REFERENCES notifications(id)
-);
-
 CREATE TABLE renewal_decisions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     scholar_id INT NOT NULL,

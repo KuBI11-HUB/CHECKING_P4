@@ -19,7 +19,7 @@ if ($scholar) {
 
 if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
-    $documentType = sanitize($_POST['document_type'] ?? '');
+    $documentType = trim($_POST['document_type'] ?? '');
     $submissionToken = $_POST['submission_token'] ?? '';
     $file = $_FILES['document_file'] ?? null;
 
@@ -30,6 +30,8 @@ if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'This upload form is invalid. Please refresh the page and try again.';
     } elseif ($documentType === '' || !$file || $file['error'] !== UPLOAD_ERR_OK) {
         $message = 'Please choose which document you\'re uploading and select a file.';
+    } elseif (!in_array($documentType, array_column($checklist, 'document_type'), true)) {
+        $message = 'Please choose one of the documents on your checklist.';
     } else {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, $allowedExt, true)) {
@@ -98,7 +100,7 @@ require_once __DIR__ . '/../includes/header.php';
     <ul class="rule-list">
         <?php foreach ($checklist as $item): ?>
             <li>
-                <span><?php echo sanitize($item['document_type']); ?>
+                <span><?php echo h($item['document_type']); ?>
                     <?php echo dueDateHtml($item['due_date'], $item['status']); ?>
                     <?php if ($item['remarks']): ?><br><small><?php echo sanitize($item['remarks']); ?></small><?php endif; ?>
                 </span>
@@ -125,7 +127,7 @@ require_once __DIR__ . '/../includes/header.php';
         <label for="document_type">Which document is this?</label>
         <select id="document_type" name="document_type" required>
             <?php foreach ($checklist as $item): ?>
-                <option value="<?php echo sanitize($item['document_type']); ?>"><?php echo sanitize($item['document_type']); ?></option>
+                <option value="<?php echo h($item['document_type']); ?>"><?php echo h($item['document_type']); ?></option>
             <?php endforeach; ?>
         </select>
         <label for="document_file">File (PDF, JPG, or PNG — 5MB max)</label>

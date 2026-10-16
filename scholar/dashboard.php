@@ -107,7 +107,7 @@ require_once __DIR__ . '/../includes/header.php';
         <ul class="rule-list">
             <?php foreach ($outstanding as $item): ?>
                 <li>
-                    <span><?php echo sanitize($item['document_type']); ?>
+                    <span><?php echo h($item['document_type']); ?>
                         <?php echo dueDateHtml($item['due_date'], $item['status']); ?>
                     </span>
                     <span class="status-badge <?php

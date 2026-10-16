@@ -24,6 +24,7 @@ if (!$scholar) {
     <div class="card">
         <p>There is no scholar with that ID.</p>
         <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/dashboard.php">Back to results</a></p>
+        <p><a class="btn" href="/GRANTED/admin/edit_scholar.php?id=<?php echo $scholarId; ?>" style="margin-top:0.75rem;">Edit profile</a></p>
     </div>
     <?php
     require_once __DIR__ . '/../includes/footer.php';
@@ -89,10 +90,31 @@ foreach ($rules as $rule) {
 }
 
 $stmt = $pdo->prepare(
-    'SELECT subject, grade, units FROM grades WHERE scholar_id = ? AND school_year = ? AND semester = ? ORDER BY subject'
+    "SELECT id, subject, grade, units, school_year, semester FROM grades
+     WHERE scholar_id = ?
+     ORDER BY school_year DESC, FIELD(semester, '1st', '2nd', 'Summer') DESC, subject"
 );
-$stmt->execute([$scholarId, CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
-$grades = $stmt->fetchAll();
+$stmt->execute([$scholarId]);
+$grades = [];        // current term: these feed GPA and units
+$otherGrades = [];   // other terms: not counted, but must stay correctable (e.g. a wrong school year)
+foreach ($stmt->fetchAll() as $g) {
+    if ($g['school_year'] === CURRENT_SCHOOL_YEAR && $g['semester'] === CURRENT_SEMESTER) {
+        $grades[] = $g;
+    } else {
+        $otherGrades[] = $g;
+    }
+}
+
+$gradeActions = static function (array $g): string {
+    $id = (int)$g['id'];
+    return '<a href="/GRANTED/admin/edit_grade.php?id=' . $id . '">Edit</a>'
+        . '<form method="POST" action="/GRANTED/admin/delete_grade.php" style="display:inline; margin-left:0.75rem;">'
+        . csrfField()
+        . '<input type="hidden" name="grade_id" value="' . $id . '">'
+        . '<button type="submit" onclick="return confirm(\'Delete this grade? The status will be recalculated.\');" '
+        . 'style="margin:0; padding:0; background:none; color:var(--color-fail); font-size:inherit; font-weight:normal; text-decoration:underline;">Delete</button>'
+        . '</form>';
+};
 
 $stmt = $pdo->prepare(
     'SELECT id, document_type, status, remarks, uploaded_at FROM documents
@@ -134,6 +156,7 @@ require_once __DIR__ . '/../includes/header.php';
     <p>Program: <?php echo $scholar['program'] ? h($scholar['program']) : '—'; ?>
        &nbsp;|&nbsp; Year level: <?php echo $scholar['year_level'] ? (int)$scholar['year_level'] : '—'; ?></p>
     <p>Scholarship type: <?php echo h($scholar['type_name']); ?></p>
+    <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/edit_scholar.php?id=<?php echo $scholarId; ?>" style="margin-top:0;">Edit scholar profile</a></p>
 </div>
 
 <div class="card">
@@ -200,7 +223,7 @@ require_once __DIR__ . '/../includes/header.php';
     <h2>Grades (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>)</h2>
     <table class="data-table">
         <thead>
-            <tr><th>Subject</th><th>Grade</th><th>Units</th></tr>
+            <tr><th>Subject</th><th>Grade</th><th>Units</th><th>Actions</th></tr>
         </thead>
         <tbody>
         <?php foreach ($grades as $g): ?>
@@ -208,14 +231,38 @@ require_once __DIR__ . '/../includes/header.php';
                 <td><?php echo h($g['subject']); ?></td>
                 <td><?php echo h((string)$g['grade']); ?></td>
                 <td><?php echo (int)$g['units']; ?></td>
+                <td><?php echo $gradeActions($g); ?></td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($grades)): ?>
-            <tr><td colspan="3">No grades recorded for this term.</td></tr>
+            <tr><td colspan="4">No grades recorded for this term.</td></tr>
         <?php endif; ?>
         </tbody>
     </table>
 </div>
+
+<?php if (!empty($otherGrades)): ?>
+<div class="card">
+    <h2>Grades from other terms</h2>
+    <p style="margin-bottom:1rem;"><small>These do not count toward the current term's GPA or units.</small></p>
+    <table class="data-table">
+        <thead>
+            <tr><th>Subject</th><th>Grade</th><th>Units</th><th>Term</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        <?php foreach ($otherGrades as $g): ?>
+            <tr>
+                <td><?php echo h($g['subject']); ?></td>
+                <td><?php echo h((string)$g['grade']); ?></td>
+                <td><?php echo (int)$g['units']; ?></td>
+                <td><?php echo h($g['school_year'] . ' ' . $g['semester']); ?></td>
+                <td><?php echo $gradeActions($g); ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <h2>Documents (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>)</h2>

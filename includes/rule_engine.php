@@ -8,7 +8,7 @@
  * with no upload after its due date FAILS (Decision D1). The reminder script also uses due_date.
  */
 
-function compareValue($actual, string $operator, $threshold): bool
+function compareValue(int|float|string $actual, string $operator, int|float|string $threshold): bool
 {
     $actual = (float)$actual;
     $threshold = (float)$threshold;
@@ -111,11 +111,14 @@ function evaluateScholar(PDO $pdo, int $scholarId): ?string
         $overallStatus = 'FAIL';
     }
 
-    $stmt = $pdo->prepare('UPDATE scholars SET current_status = ? WHERE id = ?');
-    $stmt->execute([$overallStatus, $scholarId]);
+    // Make the transition conditional so concurrent evaluations cannot notify twice for one change.
+    $stmt = $pdo->prepare('UPDATE scholars SET current_status = ? WHERE id = ? AND current_status <=> ?');
+    $stmt->execute([$overallStatus, $scholarId, $oldStatus]);
 
-    // Emails the scholar (and logs it) only if the overall status actually changed. Never throws.
-    notifyStatusChange($pdo, (int)$scholar['id'], $oldStatus, $overallStatus);
+    if ($stmt->rowCount() > 0) {
+        // Log and email each actual transition, including a later return to a previous status.
+        notifyStatusChange($pdo, (int)$scholar['id'], $oldStatus, $overallStatus);
+    }
 
     return $overallStatus;
 }

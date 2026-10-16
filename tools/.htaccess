@@ -1,0 +1,6 @@
+SetEnvIf CF-Connecting-IP ".+" via_tunnel
+SetEnvIf Cf-Ray ".+" via_tunnel
+<RequireAll>
+    Require local
+    Require not env via_tunnel
+</RequireAll>

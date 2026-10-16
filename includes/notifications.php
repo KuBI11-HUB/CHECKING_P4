@@ -221,8 +221,6 @@ function notifyStatusChange(PDO $pdo, int $scholarId, ?string $oldStatus, string
         return;
     }
 
-    $ownsTransaction = !$pdo->inTransaction();
-    $savepointCreated = false;
     try {
         $stmt = $pdo->prepare('SELECT full_name FROM scholars WHERE id = ?');
         $stmt->execute([$scholarId]);
@@ -233,35 +231,6 @@ function notifyStatusChange(PDO $pdo, int $scholarId, ?string $oldStatus, string
 
         [$subject, $body, $html] = buildStatusChangeEmail((string)$fullName, (string)$oldStatus, $newStatus);
 
-        if ($ownsTransaction) {
-            $pdo->beginTransaction();
-        } else {
-            $pdo->exec('SAVEPOINT granted_status_notification');
-            $savepointCreated = true;
-        }
-
-        $stmt = $pdo->prepare(
-            'INSERT IGNORE INTO notification_status_events (scholar_id, old_status, new_status)
-             VALUES (?, ?, ?)'
-        );
-        $stmt->execute([$scholarId, $oldStatus ?? 'INITIAL', $newStatus]);
-        if ($stmt->rowCount() === 0) {
-            $stmt = $pdo->prepare(
-                'SELECT 1 FROM notification_status_events
-                 WHERE scholar_id = ? AND old_status = ? AND new_status = ?'
-            );
-            $stmt->execute([$scholarId, $oldStatus ?? 'INITIAL', $newStatus]);
-            if (!$stmt->fetchColumn()) {
-                throw new RuntimeException('Status notification deduplication record could not be created.');
-            }
-            if ($ownsTransaction) {
-                $pdo->commit();
-            } else {
-                $pdo->exec('RELEASE SAVEPOINT granted_status_notification');
-            }
-            return;
-        }
-
         $id = logNotification($pdo, [
             'scholar_id' => $scholarId,
             'type' => 'STATUS_CHANGE',
@@ -270,25 +239,8 @@ function notifyStatusChange(PDO $pdo, int $scholarId, ?string $oldStatus, string
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
         ]);
-        $stmt = $pdo->prepare(
-            'UPDATE notification_status_events SET notification_id = ?
-             WHERE scholar_id = ? AND old_status = ? AND new_status = ?'
-        );
-        $stmt->execute([$id, $scholarId, $oldStatus ?? 'INITIAL', $newStatus]);
-
-        if ($ownsTransaction) {
-            $pdo->commit();
-        } else {
-            $pdo->exec('RELEASE SAVEPOINT granted_status_notification');
-        }
         sendNotificationEmail($pdo, $id, $sender, $html);
     } catch (Throwable $e) {
-        if ($ownsTransaction && $pdo->inTransaction()) {
-            $pdo->rollBack();
-        } elseif ($savepointCreated) {
-            $pdo->exec('ROLLBACK TO SAVEPOINT granted_status_notification');
-            $pdo->exec('RELEASE SAVEPOINT granted_status_notification');
-        }
         error_log('GRANTED status notification could not be created: ' . $e->getMessage());
     }
 }

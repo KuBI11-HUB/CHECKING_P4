@@ -1,8 +1,20 @@
 <?php
 define('SESSION_IDLE_TIMEOUT', 30 * 60);   // seconds without a request before the user is logged out
 ini_set('session.gc_maxlifetime', (string)SESSION_IDLE_TIMEOUT);
-session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+
+// Behind the Cloudflare tunnel PHP itself sees plain HTTP, so the visitor's real scheme comes from the forwarded headers.
+$onHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https'
+    || strpos((string)($_SERVER['HTTP_CF_VISITOR'] ?? ''), '"scheme":"https"') !== false;
+session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => $onHttps]);
 session_start();
+
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+
 require_once __DIR__ . '/../config/app.php';        // term, mail and Gmail settings (must load before the engine runs)
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/functions.php';

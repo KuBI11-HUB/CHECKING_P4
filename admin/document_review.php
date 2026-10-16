@@ -54,7 +54,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php foreach ($documents as $d): ?>
             <tr>
                 <td><?php echo sanitize($d['full_name']); ?></td>
-                <td><?php echo sanitize($d['document_type']); ?></td>
+                <td><?php echo h($d['document_type']); ?></td>
                 <td><a href="/GRANTED/admin/view_document.php?id=<?php echo (int)$d['id']; ?>" target="_blank">View file</a></td>
                 <td><span class="status-badge <?php
                     echo $d['status'] === 'Verified' ? 'status-badge--pass'

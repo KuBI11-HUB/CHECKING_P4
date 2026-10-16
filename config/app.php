@@ -18,15 +18,15 @@ defined('CURRENT_SCHOOL_YEAR') || define('CURRENT_SCHOOL_YEAR', '2026-2027');
 defined('CURRENT_SEMESTER')    || define('CURRENT_SEMESTER', '1st');          // '1st' | '2nd' | 'Summer'
 
 // Email sign-in links. Update the public base URL whenever a quick Cloudflare tunnel URL changes.
-defined('GRANTED_LOCAL_BASE_URL')  || define('GRANTED_LOCAL_BASE_URL', 'http://localhost:8081/GRANTED');
+defined('GRANTED_LOCAL_BASE_URL')  || define('GRANTED_LOCAL_BASE_URL', 'http://localhost/GRANTED/index.php');
 defined('GRANTED_PUBLIC_BASE_URL') || define('GRANTED_PUBLIC_BASE_URL', '');
 
 // ---- Deadline reminders (Phase 4.5) ---------------------------------------------
 defined('DEADLINE_REMINDER_DAYS') || define('DEADLINE_REMINDER_DAYS', 7);     // remind this many days ahead
 
 // ---- Mail (Phase 4.4) -------------------------------------------------------------
-defined('MAIL_ENABLED')           || define('MAIL_ENABLED', false);           // true only where Gmail is set up
-defined('MAIL_FROM_EMAIL')        || define('MAIL_FROM_EMAIL', 'your.sender.account@gmail.com');
+defined('MAIL_ENABLED')           || define('MAIL_ENABLED', false);           // true only where Gmail is set up    
+defined('MAIL_FROM_EMAIL')        || define('MAIL_FROM_EMAIL', 'dummygranted5@gmail.com');
 defined('MAIL_FROM_NAME')         || define('MAIL_FROM_NAME', 'GRANTED Scholarship Office');
 defined('GMAIL_CREDENTIALS_PATH') || define('GMAIL_CREDENTIALS_PATH', __DIR__ . '/gmail_credentials.json');
 defined('GMAIL_TOKEN_PATH')       || define('GMAIL_TOKEN_PATH', __DIR__ . '/gmail_token.json');
