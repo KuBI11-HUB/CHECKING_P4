@@ -120,7 +120,7 @@ require_once __DIR__ . '/../includes/header.php';
         <input type="text" id="description" name="description" value="<?php echo h($form['description']); ?>">
 
         <button type="submit">Save changes</button>
-        <a class="btn" href="<?php echo $listUrl; ?>" style="background:var(--color-ink-soft);">Cancel</a>
+        <a class="btn btn--secondary" href="<?php echo $listUrl; ?>">Cancel</a>
     </form>
 </div>
 
@@ -132,7 +132,7 @@ require_once __DIR__ . '/../includes/header.php';
         <p>No scholars use this type. Deleting it cannot be undone.</p>
         <form method="POST" action="<?php echo $editUrl; ?>">
             <?php echo csrfField(); ?>
-            <button type="submit" name="delete" value="1" onclick="return confirm('Delete this scholarship type?');" style="background:#B3492B;">Delete type</button>
+            <button type="submit" name="delete" value="1" class="btn btn--danger" onclick="return confirm('Delete this scholarship type?');">Delete type</button>
         </form>
     <?php endif; ?>
 </div>

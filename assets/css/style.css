@@ -1,14 +1,31 @@
 :root {
-    --color-bg: #F7F6F2;
-    --color-surface: #FFFFFF;
-    --color-ink: #1C2B39;
-    --color-ink-soft: #4B5A63;
-    --color-accent: #2E6F58;
-    --color-accent-hover: #245844;
-    --color-border: #DAD7CE;
+    /* University of Luzon palette. Everything below points at these. */
+    --ul-maroon: #6f0e07;
+    --ul-maroon-dark: #570700;
+    --ul-gold: #C79900;
+    --ul-bg: #F7F7F7;
+    --ul-surface: #FFFFFF;
+    --ul-text: #171717;
+    --ul-muted: #5C5C5C;
+    --ul-border: #E5E5E5;
+    --ul-border-input: #8A8A8A;   /* form fields need 3:1 against white; --ul-border is too light for that */
+
+    /* Existing names keep working everywhere, including inline styles in the pages. */
+    --color-bg: var(--ul-bg);
+    --color-surface: var(--ul-surface);
+    --color-ink: var(--ul-text);
+    --color-ink-soft: var(--ul-muted);
+    --color-accent: var(--ul-maroon);
+    --color-accent-hover: var(--ul-maroon-dark);
+    --color-gold: var(--ul-gold);
+    --color-on-accent: #FFFFFF;
+    --color-border: var(--ul-border);
+
+    /* Status meaning colours: unchanged on purpose. */
     --color-pass: #2E6F58;
     --color-fail: #B3492B;
     --color-pending: #B8862E;
+    --color-pending-text: #8A5E0B;   /* darker amber so the PENDING badge text is readable; the badge colors keep their meaning */
     --font-heading: 'Source Serif 4', Georgia, serif;
     --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -24,7 +41,9 @@ body {
 
 h1, h2, h3 { font-family: var(--font-heading); font-weight: 700; line-height: 1.2; margin-bottom: 0.75rem; }
 p { max-width: 65ch; }
-a { color: var(--color-accent); }
+a { color: var(--color-accent);
+}
+.site-main a:not(.btn):hover { color: var(--ul-maroon-dark); }
 
 .site-header {
     display: flex;
@@ -33,32 +52,36 @@ a { color: var(--color-accent); }
     flex-wrap: wrap;
     gap: 0.75rem;
     padding: 1rem 2rem;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    border-bottom: 3px solid var(--color-gold);
 }
-.site-header__brand { font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; }
+.site-header__brand { font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; color: var(--color-on-accent); }
 .site-header__nav { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.9rem; }
-.site-header__role { color: var(--color-ink-soft); text-transform: capitalize; }
-.site-header__nav a { text-decoration: none; }
+.site-header__nav a { text-decoration: none; color: var(--color-on-accent); }
 .site-header__nav a:hover { text-decoration: underline; }
+.ui-icon { display: inline-block; flex: none; width: 1.25rem; height: 1.25rem; vertical-align: middle; }
+.icon-label { display: inline-flex; align-items: center; gap: 0.45rem; }
+.icon-message { display: flex; align-items: flex-start; gap: 0.5rem; }
+.icon-message .ui-icon { margin-top: 0.1rem; }
+.nav-toggle {
+    display: none; padding: 0.35rem 0.75rem; border: 1px solid var(--color-on-accent);
+    border-radius: 4px; background: none; color: var(--color-on-accent);
+    font: inherit; font-weight: 500; cursor: pointer;
+}
+.site-header button:focus-visible { outline-color: var(--color-on-accent); }
 
-.site-main { max-width: 1000px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+.site-main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; }
 .site-footer { text-align: center; padding: 1.5rem; color: var(--color-ink-soft); font-size: 0.85rem; }
 
-.login-layout { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
-.login-layout__brand { background: var(--color-ink); color: var(--color-bg); display: flex; flex-direction: column; justify-content: center; padding: 3rem; }
-.login-layout__brand h1 { font-size: 2.5rem; margin-bottom: 1rem; }
-.login-layout__brand p { max-width: 32ch; color: #C9CFCB; }
-.login-layout__form { display: flex; flex-direction: column; justify-content: center; padding: 3rem; max-width: 420px; margin: 0 auto; width: 100%; }
-.login-layout__form h2 { margin-bottom: 1.5rem; font-size: 1.5rem; }
-
-form label { display: block; font-size: 0.9rem; margin-top: 1rem; margin-bottom: 0.35rem; color: var(--color-ink-soft); }
-form input, form select {
-    width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--color-border);
+form label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 1.1rem; margin-bottom: 0.35rem; color: var(--ul-text); }
+form input, form select, form textarea {
+    width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--ul-border-input);
     border-radius: 4px; font-family: var(--font-body); font-size: 1rem;
-    background: var(--color-surface); color: var(--color-ink);
+    background: var(--ul-surface); color: var(--ul-text);
 }
-form input:focus, form select:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; border-color: var(--color-accent); }
+form input:focus, form select:focus, form textarea:focus { outline: 2px solid var(--ul-maroon); outline-offset: 1px; border-color: var(--ul-maroon); }
+form input[readonly] { background: var(--ul-bg); color: var(--ul-muted); }
 
 button[type="submit"], .btn {
     margin-top: 1.75rem; display: inline-block; padding: 0.75rem 1.25rem;
@@ -66,34 +89,37 @@ button[type="submit"], .btn {
     font-family: var(--font-body); font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
 }
 button[type="submit"]:hover, .btn:hover { background: var(--color-accent-hover); }
-button[type="submit"]:disabled { background: #777; cursor: wait; opacity: 0.8; }
+button[type="submit"]:disabled { background: #6B6B6B; cursor: wait; opacity: 1; }
 
 .form-error { background: #FBEAE4; color: var(--color-fail); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
 .form-success { background: #E4F0EA; color: var(--color-pass); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
 
-@media (max-width: 760px) {
-    .login-layout { grid-template-columns: 1fr; }
-    .login-layout__brand { padding: 2.5rem 1.5rem; }
-}
-
 .shell-notice { margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 4px; }
 .shell-notice ul { margin: 0.75rem 0 0 1.25rem; }
 .shell-notice li { margin-bottom: 0.35rem; color: var(--color-ink-soft); }
+.flash { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.65rem 0.85rem; border-radius: 4px; margin: 0 0 1.5rem; }
+.flash .ui-icon { margin-top: 0.1rem; }
+.flash--error { background: #FBEAE4; color: var(--color-fail); }
+.flash--success { background: #E4F0EA; color: var(--color-pass); }
 
-.status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.status-badge { display: inline-block; min-width: 4.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; line-height: 1.4; text-align: center; white-space: nowrap; }
 .status-badge--pass { background: #E4F0EA; color: var(--color-pass); }
 .status-badge--fail { background: #FBEAE4; color: var(--color-fail); }
-.status-badge--pending { background: #FBF1E1; color: var(--color-pending); }
+.status-badge--pending { background: #FBF1E1; color: var(--color-pending-text); }
 
-.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.card { background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; overflow-x: auto; }
+.card h2 { font-size: 1.2rem; margin-bottom: 0.6rem; }
+.card small { color: var(--ul-muted); }
 
 table.data-table { width: 100%; border-collapse: collapse; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
-table.data-table th, table.data-table td { text-align: left; padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--color-border); font-size: 0.92rem; }
-table.data-table th { background: #F1F0EB; font-weight: 600; color: var(--color-ink-soft); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; }
+table.data-table th, table.data-table td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--ul-border); font-size: 0.95rem; line-height: 1.45; }
+table.data-table th { padding-top: 0.65rem; padding-bottom: 0.65rem; background: #F0F0F0; font-weight: 600; color: var(--ul-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
 table.data-table tr:last-child td { border-bottom: none; }
+table.data-table tbody tr:hover td { background: #F4F4F4; }
+table.data-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .rule-list { list-style: none; }
-.rule-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.85rem 0; border-bottom: 1px solid var(--color-border); }
+.rule-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--color-border); }
 .rule-list li:last-child { border-bottom: none; }
 .rule-list__details { flex: 1; min-width: 0; }
 .rule-list__details strong { display: block; margin-bottom: 0.15rem; }
@@ -113,3 +139,172 @@ table.data-table tr:last-child td { border-bottom: none; }
 }
 
 .page-actions { margin-bottom: 1.5rem; }
+
+/* Focus (keyboard) */
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.site-header a:focus-visible, .site-header summary:focus-visible { outline-color: var(--color-on-accent); }
+
+/* Empty states: a short sentence plus the next step */
+table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-muted); text-align: center; padding: 1.25rem 0.85rem; }
+.rule-list li.empty-state { justify-content: center; }
+.empty-state__content { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.empty-state__content .ui-icon { color: var(--ul-muted); }
+
+/* Office renewal decision: neutral outlined chip, deliberately unlike the coloured status pill */
+.decision-chip { display: inline-block; padding: 0.1rem 0.55rem; border: 1px solid var(--ul-text); border-radius: 3px; background: var(--ul-surface); color: var(--ul-text); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; }
+
+/* Login: one centered card */
+.login-page { padding-top: 6vh; }
+.login-card {
+    width: 100%; max-width: 24rem; margin: 0 auto;
+    background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 2rem 1.75rem 1.75rem;
+}
+.login-card__brand { text-align: center; margin-bottom: 1.5rem; }
+.login-card__mark { display: block; width: 2.75rem; height: 2.75rem; margin: 0 auto 0.75rem; color: var(--ul-maroon); }
+.login-card__title { font-size: 1.9rem; letter-spacing: 0.03em; color: var(--ul-maroon); margin-bottom: 0; }
+.login-card__title::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.6rem auto 0.75rem; background: var(--ul-gold); }
+.login-card__subtitle { max-width: none; color: var(--ul-muted); font-size: 0.9rem; }
+.login-card .form-error, .login-card .form-info { margin: 0 0 1rem; }
+.login-card form label:first-of-type { margin-top: 0; }
+.login-card input { padding: 0.75rem 0.85rem; }
+.login-card button[type="submit"] { width: 100%; margin-top: 1.5rem; padding: 0.8rem 1rem; font-size: 1rem; }
+.form-info { padding: 0.65rem 0.85rem; border-left: 3px solid var(--ul-gold); background: #FBF7E8; color: var(--ul-text); border-radius: 0 4px 4px 0; font-size: 0.9rem; margin-bottom: 0.75rem; }
+
+
+/* Scholar upload */
+.upload-page__title { text-align: center; font-size: clamp(1.6rem, 5vw, 2rem); }
+.upload-card { width: 100%; margin: 0 0 1.25rem; }
+.upload-form { width: 100%; max-width: 34rem; margin: 0 auto; }
+.upload-term { color: var(--ul-muted); font-size: 0.9rem; }
+
+.dropzone {
+    position: relative; text-align: center; padding: 1.5rem 1rem;
+    border: 2px dashed var(--ul-border-input); border-radius: 6px; background: var(--ul-bg);
+}
+.dropzone__prompt small { display: block; margin-top: 0.35rem; color: var(--ul-muted); }
+.dropzone__prompt > .icon-label { justify-content: center; }
+/* The real file input covers the zone, so click, tap, keyboard and native drop all work even without the script. */
+.dropzone__input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.dropzone:focus-within { border-color: var(--ul-maroon); outline: 2px solid var(--ul-maroon); outline-offset: 2px; }
+.dropzone.is-dragover { border-style: solid; border-color: var(--ul-maroon); background: var(--ul-surface); }
+@media (hover: none) { .dropzone__drag-hint { display: none; } }
+
+.file-chip { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--ul-border); border-radius: 6px; background: var(--ul-surface); }
+.file-chip[hidden], #file-error[hidden] { display: none; }
+.file-chip__type { flex: none; padding: 0.1rem 0.4rem; border: 1px solid var(--ul-text); border-radius: 3px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; }
+.file-chip__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.file-chip__size { flex: none; color: var(--ul-muted); font-size: 0.85rem; }
+.file-chip__remove { flex: none; width: 2.5rem; height: 2.5rem; border: 1px solid transparent; border-radius: 4px; background: none; color: var(--ul-text); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.file-chip__remove:hover { background: var(--ul-bg); border-color: var(--ul-border-input); }
+#file-error { margin-top: 0.75rem; }
+
+.upload-actions { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+.upload-actions button, .upload-actions .btn { margin-top: 0; width: 100%; }
+/* Button roles: primary = solid maroon (the default), secondary = outlined neutral, danger = outlined red */
+.btn.btn--secondary, button[type="submit"].btn--secondary {
+    background: var(--ul-surface); color: var(--ul-text); border: 1px solid var(--ul-border-input);
+}
+.btn.btn--secondary:hover, button[type="submit"].btn--secondary:hover { background: var(--ul-bg); }
+.btn.btn--danger, button[type="submit"].btn--danger {
+    background: var(--ul-surface); color: var(--color-fail); border: 1px solid var(--color-fail);
+}
+.btn.btn--danger:hover, button[type="submit"].btn--danger:hover { background: #FBEAE4; }
+@media (min-width: 600px) {
+    .upload-actions { flex-direction: row-reverse; justify-content: flex-start; }
+    .upload-actions button, .upload-actions .btn { width: auto; min-width: 7rem; }
+}
+
+@media (max-width: 480px) {
+    .login-page { padding-top: 2vh; }
+    .login-card { padding: 1.5rem 1.25rem; }
+    .upload-card { padding: 1rem; }
+    .dropzone { padding: 1.25rem 0.75rem; }
+}
+
+/* Admin results: filters, chips, pager, sticky header */
+.filter-form { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1rem; }
+.filter-form__field { flex: 1 1 12rem; }
+.filter-form__field--search { flex: 2 1 16rem; }
+.filter-form__field--narrow { flex: 0 1 8rem; }
+.filter-form__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.filter-form__actions .btn, .filter-form__actions button { margin-top: 0; }
+.filter-block > summary { cursor: pointer; font-weight: 600; padding: 0.4rem 0 0.75rem; }
+@media (min-width: 761px) { .filter-block > summary { display: none; } }
+
+.filter-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.filter-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.2rem 0.15rem 0.6rem; border: 1px solid var(--ul-border-input); border-radius: 3px; background: var(--ul-surface); font-size: 0.85rem; }
+.filter-chip a { padding: 0 0.45rem; font-size: 1.1rem; line-height: 1; text-decoration: none; }
+
+.results-summary { margin-bottom: 0.75rem; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; }
+.pager .btn { margin-top: 0; }
+.pager__disabled { padding: 0.75rem 1.25rem; color: var(--ul-muted); }
+
+/* Sticky header needs no clipping ancestor, so this card opts out of the global card overflow and the table's own clipping. */
+.card.results-card { overflow: visible; }
+table.data-table--sticky { overflow: visible; }
+table.data-table--sticky th { position: sticky; top: 0; z-index: 1; background: var(--ul-maroon); color: var(--color-on-accent); box-shadow: 0 1px 0 var(--ul-maroon-dark); }
+@media (max-width: 760px) {
+    .table-scroll { overflow-x: auto; }
+    .table-scroll table.data-table { min-width: 44rem; }
+}
+
+/* Header layout: brand | nav links ........ [Menu] [account chip] */
+.site-header__nav { margin-left: auto; }
+.site-header__actions { display: flex; align-items: center; gap: 0.75rem; }
+
+/* Account chip + menu (the same for admin and scholar) */
+.account-menu { position: relative; }
+.account-chip {
+    display: flex; align-items: center; gap: 0.5rem; list-style: none; cursor: pointer;
+    padding: 0.2rem 0.65rem 0.2rem 0.2rem; border: 1px solid transparent; border-radius: 999px;
+    color: var(--color-on-accent);
+}
+.account-chip::-webkit-details-marker { display: none; }
+.account-chip:hover, .account-menu[open] > .account-chip { background: var(--ul-maroon-dark); border-color: rgba(255, 255, 255, 0.45); }
+.account-chip__avatar { display: flex; align-items: center; justify-content: center; flex: none; width: 2rem; height: 2rem; border-radius: 50%; background: var(--color-on-accent); color: var(--ul-maroon); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+.account-chip__name { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; font-weight: 500; }
+.account-chip__chevron { width: 0.4rem; height: 0.4rem; margin: -0.15rem 0.1rem 0 0; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.account-menu[open] .account-chip__chevron { margin-top: 0.15rem; transform: rotate(-135deg); }
+
+.account-menu__panel {
+    position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 10;
+    width: 18rem; max-width: calc(100vw - 2rem);
+    background: var(--ul-surface); color: var(--ul-text);
+    border: 1px solid var(--ul-border); border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    padding: 0.25rem 0;
+}
+.account-menu__who { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; }
+.account-menu__avatar { display: flex; align-items: center; justify-content: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--ul-maroon); color: var(--color-on-accent); font-weight: 700; }
+.account-menu__id { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.account-menu__id span { font-size: 0.85rem; color: var(--ul-muted); }
+.account-menu__role { font-weight: 600; }
+.account-menu__sep { height: 1px; margin: 0.25rem 0; background: var(--ul-border); }
+.account-menu__panel a { display: block; padding: 0.6rem 1rem; color: var(--ul-text); text-decoration: none; }
+.account-menu__panel a:hover { background: var(--ul-bg); }
+.account-menu__panel a:focus-visible { outline-color: var(--ul-maroon); outline-offset: -2px; }
+
+/* Narrow screens: collapsing nav links; the account chip stays top-right */
+@media (max-width: 760px) {
+    .js .nav-toggle { display: inline-block; }
+    .js .site-header__nav { display: none; order: 3; flex-basis: 100%; margin-left: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.4); }
+    .js .site-header__nav.is-open { display: flex; }
+    .site-header__nav > a { padding: 0.45rem 0; }
+    .site-header__actions { margin-left: auto; }
+}
+@media (max-width: 480px) {
+    .account-chip__name { display: none; }
+    .account-chip { padding-right: 0.5rem; }
+}
+
+/* Settings page */
+.settings-list { display: grid; grid-template-columns: 7rem 1fr; gap: 0.5rem 1rem; }
+.settings-list dt { color: var(--ul-muted); }
+.settings-list dd { overflow-wrap: anywhere; }
+.settings-note { margin-top: 0.75rem; color: var(--ul-muted); font-size: 0.9rem; }
+@media (max-width: 480px) {
+    .settings-list { grid-template-columns: 1fr; gap: 0.1rem; }
+    .settings-list dd { margin-bottom: 0.5rem; }
+}

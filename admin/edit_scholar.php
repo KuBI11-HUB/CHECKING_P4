@@ -119,7 +119,7 @@ require_once __DIR__ . '/../includes/header.php';
         <p style="margin-top:0.5rem;"><small>Changing the type re-runs the new type's rules for this scholar immediately.</small></p>
 
         <button type="submit">Save profile</button>
-        <a class="btn" href="<?php echo $detailUrl; ?>" style="background:var(--color-ink-soft);">Cancel</a>
+        <a class="btn btn--secondary" href="<?php echo $detailUrl; ?>">Cancel</a>
     </form>
 </div>
 

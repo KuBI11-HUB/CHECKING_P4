@@ -116,7 +116,7 @@ require_once __DIR__ . '/../includes/header.php';
         </select>
 
         <button type="submit">Save changes</button>
-        <a class="btn" href="<?php echo $detailUrl; ?>" style="background:var(--color-ink-soft);">Cancel</a>
+        <a class="btn btn--secondary" href="<?php echo $detailUrl; ?>">Cancel</a>
     </form>
 </div>
 

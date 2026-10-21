@@ -136,7 +136,7 @@ require_once __DIR__ . '/../includes/header.php';
         </label>
 
         <button type="submit">Save rule</button>
-        <a class="btn" href="/GRANTED/admin/rules.php" style="background:var(--color-ink-soft);">Cancel</a>
+        <a class="btn btn--secondary" href="/GRANTED/admin/rules.php">Cancel</a>
     </form>
     <script>
         var ruleType = document.getElementById('rule_type');

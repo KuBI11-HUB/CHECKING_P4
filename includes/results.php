@@ -26,12 +26,57 @@ function normalizeResultFilters(array $get): array
     $program = $get['program'] ?? '';
     $status = $get['status'] ?? '';
     $typeId = $get['scholarship_type_id'] ?? '';
+    $search = $get['q'] ?? '';
+    $search = is_string($search) ? trim($search) : '';
 
     return [
+        'q' => function_exists('mb_substr') ? mb_substr($search, 0, 100) : substr($search, 0, 100),
         'program' => is_string($program) ? trim($program) : '',
         'status' => (is_string($status) && in_array($status, ['PASS', 'FAIL', 'PENDING'], true)) ? $status : '',
         'scholarship_type_id' => (is_string($typeId) && ctype_digit($typeId)) ? (int)$typeId : 0,
     ];
+}
+
+const RESULTS_PER_PAGE_DEFAULT = 25;
+const RESULTS_PER_PAGE_OPTIONS = [25, 50, 100];
+
+/** Page number and page size from $_GET. Anything invalid falls back to page 1 / 25 rows. */
+function normalizeResultPaging(array $get): array
+{
+    $perPage = $get['per_page'] ?? '';
+    $page = $get['page'] ?? '';
+
+    return [
+        'per_page' => (is_string($perPage) && ctype_digit($perPage) && in_array((int)$perPage, RESULTS_PER_PAGE_OPTIONS, true))
+            ? (int)$perPage : RESULTS_PER_PAGE_DEFAULT,
+        'page' => (is_string($page) && ctype_digit($page) && (int)$page >= 1) ? (int)$page : 1,
+    ];
+}
+
+/** Query string that reproduces a results view. $overrides changes single values (for example 'page' => 2, or 'q' => '' to drop the search). */
+function resultsQueryString(array $filters, array $paging = [], array $overrides = []): string
+{
+    $values = array_merge($filters, $paging, $overrides);
+    $query = [];
+    if (($values['q'] ?? '') !== '') {
+        $query['q'] = $values['q'];
+    }
+    if (($values['program'] ?? '') !== '') {
+        $query['program'] = $values['program'];
+    }
+    if (($values['status'] ?? '') !== '') {
+        $query['status'] = $values['status'];
+    }
+    if ((int)($values['scholarship_type_id'] ?? 0) > 0) {
+        $query['scholarship_type_id'] = (int)$values['scholarship_type_id'];
+    }
+    if ((int)($values['per_page'] ?? RESULTS_PER_PAGE_DEFAULT) !== RESULTS_PER_PAGE_DEFAULT) {
+        $query['per_page'] = (int)$values['per_page'];
+    }
+    if ((int)($values['page'] ?? 1) > 1) {
+        $query['page'] = (int)$values['page'];
+    }
+    return http_build_query($query);
 }
 
 /** The values the filter dropdowns can offer. Programs are kept exactly as stored. */
@@ -45,15 +90,12 @@ function getResultFilterOptions(PDO $pdo): array
     return ['programs' => $programs, 'statuses' => ['PASS', 'FAIL', 'PENDING'], 'types' => $types];
 }
 
-/**
- * One row per scholar, with the office decision for the CURRENT term (null when none yet).
- * Filters are only applied when they match a real option, so a stale or invalid value is ignored.
- */
-function getResults(PDO $pdo, array $filters): array
+/** WHERE clause and parameters shared by the results list, its count and the CSV export. A filter only applies when it matches a real option. */
+function resultsWhere(PDO $pdo, array $filters): array
 {
     $options = getResultFilterOptions($pdo);
     $where = [];
-    $params = [':school_year' => CURRENT_SCHOOL_YEAR, ':semester' => CURRENT_SEMESTER];
+    $params = [];
 
     $program = $filters['program'] ?? '';
     if ($program !== '' && in_array($program, $options['programs'], true)) {
@@ -73,6 +115,46 @@ function getResults(PDO $pdo, array $filters): array
         $params[':type_id'] = $typeId;
     }
 
+    $search = $filters['q'] ?? '';
+    if ($search !== '') {
+        // Older rows hold HTML-escaped text (O'Brien -> O&#039;Brien), so look for both spellings.
+        $spellings = array_values(array_unique([$search, htmlspecialchars($search, ENT_QUOTES, 'UTF-8')]));
+        $any = [];
+        foreach ($spellings as $i => $spelling) {
+            $like = '%' . addcslashes($spelling, '\\%_') . '%';
+            $any[] = "s.full_name LIKE :name{$i} OR u.email LIKE :email{$i}";
+            $params[":name{$i}"] = $like;
+            $params[":email{$i}"] = $like;
+        }
+        $where[] = '(' . implode(' OR ', $any) . ')';
+    }
+
+    return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params];
+}
+
+/** Number of scholars matching the filters (ignores paging). */
+function countResults(PDO $pdo, array $filters): int
+{
+    [$whereSql, $params] = resultsWhere($pdo, $filters);
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM scholars s
+         JOIN users u ON u.id = s.user_id
+         JOIN scholarship_types st ON st.id = s.scholarship_type_id' . $whereSql
+    );
+    $stmt->execute($params);
+    return (int)$stmt->fetchColumn();
+}
+
+/**
+ * One row per scholar, with the office decision for the CURRENT term (null when none yet).
+ * Without $limit every matching row is returned (the CSV export relies on that).
+ */
+function getResults(PDO $pdo, array $filters, ?int $limit = null, int $offset = 0): array
+{
+    [$whereSql, $params] = resultsWhere($pdo, $filters);
+    $params[':school_year'] = CURRENT_SCHOOL_YEAR;
+    $params[':semester'] = CURRENT_SEMESTER;
+
     $sql = 'SELECT s.id, s.full_name, s.program, s.year_level, s.current_gpa, s.current_units, s.current_status,
                    u.email, st.name AS type_name,
                    rd.decision AS office_decision, rd.remarks AS decision_remarks
@@ -81,8 +163,11 @@ function getResults(PDO $pdo, array $filters): array
             JOIN scholarship_types st ON st.id = s.scholarship_type_id
             LEFT JOIN renewal_decisions rd ON rd.scholar_id = s.id
                  AND rd.school_year = :school_year AND rd.semester = :semester'
-        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+        . $whereSql
         . ' ORDER BY s.full_name, s.id';
+    if ($limit !== null) {
+        $sql .= ' LIMIT ' . max(1, $limit) . ' OFFSET ' . max(0, $offset);   // plain integers, never user text
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

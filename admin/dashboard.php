@@ -4,70 +4,128 @@ require_once __DIR__ . '/../includes/auth_check.php';
 
 $pdo = getDbConnection();
 $filters = normalizeResultFilters($_GET);
+$paging = normalizeResultPaging($_GET);
 $options = getResultFilterOptions($pdo);
-$results = getResults($pdo, $filters);
+
+$matching = countResults($pdo, $filters);
+$totalPages = max(1, (int)ceil($matching / $paging['per_page']));
+$paging['page'] = min($paging['page'], $totalPages);          // a page past the end shows the last page
+$offset = ($paging['page'] - 1) * $paging['per_page'];
+$results = getResults($pdo, $filters, $paging['per_page'], $offset);
+
 $totalScholars = (int)$pdo->query('SELECT COUNT(*) FROM scholars')->fetchColumn();
-$exportQuery = http_build_query(array_filter($filters, fn($value) => $value !== '' && $value !== 0));
+$exportQuery = resultsQueryString($filters);                          // the CSV export ignores paging
+$_SESSION['results_query'] = resultsQueryString($filters, $paging);   // "Back to results" on a scholar page returns to this view
+
+$resultsUrl = static function (array $override = []) use ($filters, $paging): string {
+    $query = resultsQueryString($filters, $paging, $override);
+    return '/GRANTED/admin/dashboard.php' . ($query !== '' ? '?' . $query : '');
+};
+
+// Active filters, shown as removable chips. Only filters that really apply are listed.
+$activeFilters = [];
+if ($filters['q'] !== '') {
+    $activeFilters[] = ['Search', $filters['q'], ['q' => '']];
+}
+if ($filters['program'] !== '' && in_array($filters['program'], $options['programs'], true)) {
+    $activeFilters[] = ['Program', $filters['program'], ['program' => '']];
+}
+if ($filters['status'] !== '') {
+    $activeFilters[] = ['Status', $filters['status'], ['status' => '']];
+}
+foreach ($options['types'] as $type) {
+    if ($filters['scholarship_type_id'] === (int)$type['id']) {
+        $activeFilters[] = ['Type', $type['name'], ['scholarship_type_id' => 0]];
+    }
+}
 
 $pageTitle = 'Admin Dashboard';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1>Admin dashboard</h1>
-<p>Logged in as <?php echo sanitize($_SESSION['email']); ?>.</p>
+<p>Logged in as <?php echo h($_SESSION['email']); ?>.</p>
 
 <div class="page-actions">
     <a class="btn" href="/GRANTED/admin/enroll_scholar.php">+ Enroll scholar</a>
     <a class="btn" href="/GRANTED/admin/enter_grades.php">+ Enter grades</a>
 </div>
 
-<div class="card">
+<div class="card results-card">
     <h2>Results</h2>
 
-    <form method="GET" action="/GRANTED/admin/dashboard.php" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end; margin-bottom:1.25rem;">
-        <div style="flex:1 1 12rem;">
-            <label for="program">Program</label>
-            <select id="program" name="program">
-                <option value="">All programs</option>
-                <?php foreach ($options['programs'] as $program): ?>
-                    <?php // The value stays exactly as stored so it matches in SQL; only the label is decoded. ?>
-                    <option value="<?php echo sanitize($program); ?>" <?php echo $filters['program'] === $program ? 'selected' : ''; ?>><?php echo h($program); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div style="flex:1 1 10rem;">
-            <label for="status">Calculated status</label>
-            <select id="status" name="status">
-                <option value="">All statuses</option>
-                <?php foreach ($options['statuses'] as $status): ?>
-                    <option value="<?php echo h($status); ?>" <?php echo $filters['status'] === $status ? 'selected' : ''; ?>><?php echo h($status); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div style="flex:1 1 12rem;">
-            <label for="scholarship_type_id">Scholarship type</label>
-            <select id="scholarship_type_id" name="scholarship_type_id">
-                <option value="">All types</option>
-                <?php foreach ($options['types'] as $type): ?>
-                    <option value="<?php echo (int)$type['id']; ?>" <?php echo $filters['scholarship_type_id'] === (int)$type['id'] ? 'selected' : ''; ?>><?php echo h($type['name']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div style="display:flex; gap:0.5rem;">
-            <button type="submit" style="margin-top:0;">Apply filters</button>
-            <a class="btn" href="/GRANTED/admin/dashboard.php" style="margin-top:0;">Clear filters</a>
-            <a class="btn" href="/GRANTED/admin/export_results.php<?php echo $exportQuery !== '' ? '?' . sanitize($exportQuery) : ''; ?>" style="margin-top:0;">Export CSV</a>
-        </div>
-    </form>
+    <details class="filter-block" open>
+        <summary>Filters<?php echo $activeFilters ? ' · ' . count($activeFilters) . ' active' : ''; ?></summary>
+        <form method="GET" action="/GRANTED/admin/dashboard.php" class="filter-form">
+            <div class="filter-form__field filter-form__field--search">
+                <label for="q"><span class="icon-label"><?php echo uiIcon('search'); ?>Search name or email</span></label>
+                <input type="search" id="q" name="q" value="<?php echo sanitize($filters['q']); ?>" maxlength="100" placeholder="e.g. Maria or maria@gmail.com">
+            </div>
+            <div class="filter-form__field">
+                <label for="program">Program</label>
+                <select id="program" name="program">
+                    <option value="">All programs</option>
+                    <?php foreach ($options['programs'] as $program): ?>
+                        <?php // The value stays exactly as stored so it matches in SQL; only the label is decoded. ?>
+                        <option value="<?php echo sanitize($program); ?>" <?php echo $filters['program'] === $program ? 'selected' : ''; ?>><?php echo h($program); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-form__field">
+                <label for="status">Calculated status</label>
+                <select id="status" name="status">
+                    <option value="">All statuses</option>
+                    <?php foreach ($options['statuses'] as $status): ?>
+                        <option value="<?php echo h($status); ?>" <?php echo $filters['status'] === $status ? 'selected' : ''; ?>><?php echo h($status); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-form__field">
+                <label for="scholarship_type_id">Scholarship type</label>
+                <select id="scholarship_type_id" name="scholarship_type_id">
+                    <option value="">All types</option>
+                    <?php foreach ($options['types'] as $type): ?>
+                        <option value="<?php echo (int)$type['id']; ?>" <?php echo $filters['scholarship_type_id'] === (int)$type['id'] ? 'selected' : ''; ?>><?php echo h($type['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-form__field filter-form__field--narrow">
+                <label for="per_page">Rows per page</label>
+                <select id="per_page" name="per_page">
+                    <?php foreach (RESULTS_PER_PAGE_OPTIONS as $size): ?>
+                        <option value="<?php echo $size; ?>" <?php echo $paging['per_page'] === $size ? 'selected' : ''; ?>><?php echo $size; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-form__actions">
+                <button type="submit">Apply filters</button>
+                <a class="btn btn--secondary" href="/GRANTED/admin/dashboard.php">Clear filters</a>
+                <a class="btn btn--secondary" href="/GRANTED/admin/export_results.php<?php echo $exportQuery !== '' ? '?' . sanitize($exportQuery) : ''; ?>">Export CSV</a>
+            </div>
+        </form>
+    </details>
 
-    <p style="margin-bottom:1rem;">
+    <?php if ($activeFilters): ?>
+        <div class="filter-chips" aria-label="Active filters">
+            <?php foreach ($activeFilters as [$label, $value, $override]): ?>
+                <span class="filter-chip"><?php echo h($label . ': ' . $value); ?>
+                    <a href="<?php echo sanitize($resultsUrl($override + ['page' => 1])); ?>" aria-label="Remove filter <?php echo h($label); ?>" title="Remove this filter">&times;</a></span>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <p class="results-summary">
         Results for <strong><?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?></strong>.
-        Showing <?php echo count($results); ?> of <?php echo $totalScholars; ?> scholars.
+        <?php if ($matching > 0): ?>
+            Showing <strong><?php echo $offset + 1; ?>&ndash;<?php echo $offset + count($results); ?></strong>
+            of <strong><?php echo $matching; ?></strong> scholars<?php echo $matching !== $totalScholars ? ' (' . $totalScholars . ' enrolled)' : ''; ?>.
+        <?php endif; ?>
     </p>
 
-    <table class="data-table">
+    <div class="table-scroll">
+    <table class="data-table data-table--sticky">
         <thead>
-            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th>GPA</th><th>Units</th><th>Calculated status</th><th>Office decision</th></tr>
+            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th class="num">GPA</th><th class="num">Units</th><th>Calculated status</th><th>Office decision</th></tr>
         </thead>
         <tbody>
         <?php foreach ($results as $s): ?>
@@ -75,17 +133,48 @@ require_once __DIR__ . '/../includes/header.php';
                 <td><a href="/GRANTED/admin/scholar_detail.php?id=<?php echo (int)$s['id']; ?>"><?php echo h($s['full_name']); ?></a></td>
                 <td><?php echo $s['program'] ? h($s['program']) : '—'; ?></td>
                 <td><?php echo h($s['type_name']); ?></td>
-                <td><?php echo $s['current_gpa'] !== null ? h((string)$s['current_gpa']) : '—'; ?></td>
-                <td><?php echo $s['current_units'] !== null ? h((string)$s['current_units']) : '—'; ?></td>
+                <td class="num"><?php echo $s['current_gpa'] !== null ? h((string)$s['current_gpa']) : '—'; ?></td>
+                <td class="num"><?php echo $s['current_units'] !== null ? h((string)$s['current_units']) : '—'; ?></td>
                 <td><span class="status-badge <?php echo statusBadgeClass($s['current_status']); ?>"><?php echo h($s['current_status']); ?></span></td>
-                <td><?php echo $s['office_decision'] ? h(str_replace('_', ' ', $s['office_decision'])) : '—'; ?></td>
+                <td><?php echo $s['office_decision'] ? '<span class="decision-chip">' . h(str_replace('_', ' ', $s['office_decision'])) . '</span>' : '—'; ?></td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($results)): ?>
-            <tr><td colspan="7"><?php echo $totalScholars === 0 ? 'No scholars enrolled yet.' : 'No scholars match these filters.'; ?></td></tr>
+            <tr><td colspan="7" class="empty-state"><span class="empty-state__content"><?php echo uiIcon('inbox'); ?>
+                <?php if ($totalScholars === 0): ?>
+                    No scholars enrolled yet. <a href="/GRANTED/admin/enroll_scholar.php">Enroll the first scholar</a>.
+                <?php else: ?>
+                    No scholars match these filters. <a href="/GRANTED/admin/dashboard.php">Clear filters</a>.
+                <?php endif; ?>
+            </span></td></tr>
         <?php endif; ?>
         </tbody>
     </table>
+    </div>
+
+    <?php if ($totalPages > 1): ?>
+        <nav class="pager" aria-label="Pages of results">
+            <?php if ($paging['page'] > 1): ?>
+                <a class="btn btn--secondary" href="<?php echo sanitize($resultsUrl(['page' => $paging['page'] - 1])); ?>">&larr; Previous</a>
+            <?php else: ?>
+                <span class="pager__disabled">&larr; Previous</span>
+            <?php endif; ?>
+            <span>Page <?php echo $paging['page']; ?> of <?php echo $totalPages; ?></span>
+            <?php if ($paging['page'] < $totalPages): ?>
+                <a class="btn btn--secondary" href="<?php echo sanitize($resultsUrl(['page' => $paging['page'] + 1])); ?>">Next &rarr;</a>
+            <?php else: ?>
+                <span class="pager__disabled">Next &rarr;</span>
+            <?php endif; ?>
+        </nav>
+    <?php endif; ?>
 </div>
+
+<script>
+    // On phones the filter block starts collapsed (the chips above the table still show what is active).
+    (function () {
+        var block = document.querySelector('.filter-block');
+        if (block && window.matchMedia('(max-width: 760px)').matches) { block.open = false; }
+    })();
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

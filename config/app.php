@@ -31,3 +31,10 @@ defined('MAIL_FROM_NAME')         || define('MAIL_FROM_NAME', 'GRANTED Scholarsh
 defined('GMAIL_CREDENTIALS_PATH') || define('GMAIL_CREDENTIALS_PATH', __DIR__ . '/gmail_credentials.json');
 defined('GMAIL_TOKEN_PATH')       || define('GMAIL_TOKEN_PATH', __DIR__ . '/gmail_token.json');
 defined('GMAIL_REDIRECT_URI')     || define('GMAIL_REDIRECT_URI', 'http://localhost/GRANTED/tools/gmail_authorize.php');
+
+// ---- Login rate limit (Phase 7) ---------------------------------------------------
+defined('LOGIN_RATE_LIMIT_ENABLED') || define('LOGIN_RATE_LIMIT_ENABLED', true);
+defined('LOGIN_MAX_FAILURES')       || define('LOGIN_MAX_FAILURES', 5);    // per email from one IP
+defined('LOGIN_WINDOW_MINUTES')     || define('LOGIN_WINDOW_MINUTES', 15);
+
+defined('GRANTED_PRIVACY_URL') || define('GRANTED_PRIVACY_URL', '');

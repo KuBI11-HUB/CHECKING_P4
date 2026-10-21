@@ -45,8 +45,9 @@ require_once __DIR__ . '/../includes/header.php';
 <h1>Document review</h1>
 <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
 
-<div class="card">
-    <table class="data-table">
+<div class="card results-card">
+    <div class="table-scroll">
+    <table class="data-table data-table--sticky">
         <thead>
             <tr><th>Scholar</th><th>Document</th><th>File</th><th>Status</th><th>Remarks</th><th>Action</th></tr>
         </thead>
@@ -68,7 +69,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <input type="hidden" name="document_id" value="<?php echo (int)$d['id']; ?>">
                         <input type="text" name="remarks" placeholder="remark (required if rejecting)" style="width:160px;">
                         <button type="submit" name="decision" value="Verified" class="btn" style="margin-top:0;">Verify</button>
-                        <button type="submit" name="decision" value="Rejected" class="btn" style="margin-top:0; background:#B3492B;">Reject</button>
+                        <button type="submit" name="decision" value="Rejected" class="btn btn--danger" style="margin-top:0;">Reject</button>
                     </form>
                     <?php else: ?>
                         <em>reviewed</em>
@@ -77,10 +78,11 @@ require_once __DIR__ . '/../includes/header.php';
             </tr>
         <?php endforeach; ?>
         <?php if (empty($documents)): ?>
-            <tr><td colspan="6">No documents uploaded yet.</td></tr>
+            <tr><td colspan="6" class="empty-state"><span class="empty-state__content"><?php echo uiIcon('inbox'); ?>No documents uploaded yet.</span></td></tr>
         <?php endif; ?>
         </tbody>
     </table>
+    </div>
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

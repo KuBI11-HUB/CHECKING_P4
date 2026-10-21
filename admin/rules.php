@@ -55,9 +55,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 <h1>Rules</h1>
 
-<?php if ($flash): ?>
-    <div class="shell-notice" style="margin-top:0; margin-bottom:1.5rem;"><?php echo h($flash); ?></div>
-<?php endif; ?>
+<?php echo flashBox($flash); ?>
 
 <div class="card">
     <h2>Add a rule</h2>

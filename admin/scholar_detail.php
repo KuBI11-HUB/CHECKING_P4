@@ -139,16 +139,21 @@ $stmt = $pdo->prepare(
 $stmt->execute([$scholarId, CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
 $savedDecision = $stmt->fetch();
 
+// Back to the exact results view (filters + page) the admin came from; the dashboard saves it in the session.
+$backQuery = (string)($_SESSION['results_query'] ?? '');
+if (!preg_match('/\A[A-Za-z0-9%=&_.+~-]*\z/', $backQuery)) {
+    $backQuery = '';
+}
+$backUrl = '/GRANTED/admin/dashboard.php' . ($backQuery !== '' ? '?' . $backQuery : '');
+
 $pageTitle = plainText($scholar['full_name']);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<p style="margin-bottom:1rem;"><a href="/GRANTED/admin/dashboard.php">&larr; Back to results</a></p>
+<p style="margin-bottom:1rem;"><a href="<?php echo sanitize($backUrl); ?>">&larr; Back to results</a></p>
 <h1><?php echo h($scholar['full_name']); ?></h1>
 
-<?php if ($flash): ?>
-    <div class="shell-notice" style="margin-top:0; margin-bottom:1.5rem;"><?php echo h($flash); ?></div>
-<?php endif; ?>
+<?php echo flashBox($flash); ?>
 
 <div class="card">
     <h2>Profile</h2>
@@ -157,6 +162,27 @@ require_once __DIR__ . '/../includes/header.php';
        &nbsp;|&nbsp; Year level: <?php echo $scholar['year_level'] ? (int)$scholar['year_level'] : '—'; ?></p>
     <p>Scholarship type: <?php echo h($scholar['type_name']); ?></p>
     <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/edit_scholar.php?id=<?php echo $scholarId; ?>" style="margin-top:0;">Edit scholar profile</a></p>
+</div>
+
+<div class="card">
+    <h2>Account access</h2>
+    <p class="form-info">Walk-in requests only. Before setting a temporary password, check the person's school ID card against the full name and login email shown on this page. If anything does not match, do not continue.</p>
+    <form method="POST" action="/GRANTED/admin/set_scholar_password.php" style="max-width:26rem;" autocomplete="off">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="scholar_id" value="<?php echo $scholarId; ?>">
+
+        <label for="login_email">Login email (read-only)</label>
+        <input type="email" id="login_email" value="<?php echo h($scholar['email']); ?>" readonly autocomplete="off" style="background:var(--color-bg);">
+
+        <label for="account_new_password">Temporary password (at least 8 characters)</label>
+        <input type="password" id="account_new_password" name="new_password" autocomplete="new-password" minlength="8" required>
+
+        <label for="account_confirm_password">Confirm temporary password</label>
+        <input type="password" id="account_confirm_password" name="confirm_password" autocomplete="new-password" minlength="8" required>
+
+        <button type="submit" onclick="return confirm('Set a new password for this scholar? Their old password will stop working.');">Set temporary password</button>
+    </form>
+    <p style="margin-top:1rem;"><small>This only changes the sign-in password. It does not change the scholar's status or any renewal record.</small></p>
 </div>
 
 <div class="card">
@@ -169,7 +195,7 @@ require_once __DIR__ . '/../includes/header.php';
     <p>Last evaluated: <?php echo $lastEvaluated !== null ? h($lastEvaluated) : '—'; ?></p>
     <form method="POST" action="<?php echo $detailUrl; ?>">
         <?php echo csrfField(); ?>
-        <button type="submit" name="rerun" value="1" style="margin-top:1rem;">Re-run check</button>
+        <button type="submit" name="rerun" value="1" class="btn btn--secondary" style="margin-top:1rem;">Re-run check</button>
     </form>
 </div>
 
@@ -223,14 +249,14 @@ require_once __DIR__ . '/../includes/header.php';
     <h2>Grades (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>)</h2>
     <table class="data-table">
         <thead>
-            <tr><th>Subject</th><th>Grade</th><th>Units</th><th>Actions</th></tr>
+            <tr><th>Subject</th><th class="num">Grade</th><th class="num">Units</th><th>Actions</th></tr>
         </thead>
         <tbody>
         <?php foreach ($grades as $g): ?>
             <tr>
                 <td><?php echo h($g['subject']); ?></td>
-                <td><?php echo h((string)$g['grade']); ?></td>
-                <td><?php echo (int)$g['units']; ?></td>
+                <td class="num"><?php echo h((string)$g['grade']); ?></td>
+                <td class="num"><?php echo (int)$g['units']; ?></td>
                 <td><?php echo $gradeActions($g); ?></td>
             </tr>
         <?php endforeach; ?>
@@ -247,14 +273,14 @@ require_once __DIR__ . '/../includes/header.php';
     <p style="margin-bottom:1rem;"><small>These do not count toward the current term's GPA or units.</small></p>
     <table class="data-table">
         <thead>
-            <tr><th>Subject</th><th>Grade</th><th>Units</th><th>Term</th><th>Actions</th></tr>
+            <tr><th>Subject</th><th class="num">Grade</th><th class="num">Units</th><th>Term</th><th>Actions</th></tr>
         </thead>
         <tbody>
         <?php foreach ($otherGrades as $g): ?>
             <tr>
                 <td><?php echo h($g['subject']); ?></td>
-                <td><?php echo h((string)$g['grade']); ?></td>
-                <td><?php echo (int)$g['units']; ?></td>
+                <td class="num"><?php echo h((string)$g['grade']); ?></td>
+                <td class="num"><?php echo (int)$g['units']; ?></td>
                 <td><?php echo h($g['school_year'] . ' ' . $g['semester']); ?></td>
                 <td><?php echo $gradeActions($g); ?></td>
             </tr>
@@ -318,7 +344,7 @@ require_once __DIR__ . '/../includes/header.php';
     <p>Calculated status:
         <span class="status-badge <?php echo statusBadgeClass($scholar['current_status']); ?>"><?php echo h($scholar['current_status']); ?></span>
         &nbsp;|&nbsp; Office decision:
-        <strong><?php echo $savedDecision ? h(str_replace('_', ' ', $savedDecision['decision'])) : 'Not recorded yet'; ?></strong>
+        <?php if ($savedDecision): ?><span class="decision-chip"><?php echo h(str_replace('_', ' ', $savedDecision['decision'])); ?></span><?php else: ?><em>Not recorded yet</em><?php endif; ?>
     </p>
     <?php if ($savedDecision): ?>
         <p>Recorded by <?php echo h($savedDecision['decided_by_email']); ?> on <?php echo h($savedDecision['decided_at']); ?>
@@ -339,8 +365,7 @@ require_once __DIR__ . '/../includes/header.php';
         </select>
 
         <label for="remarks">Remarks (required when the decision differs from the calculated status)</label>
-        <textarea id="remarks" name="remarks" rows="4" maxlength="2000"
-                  style="width:100%; padding:0.65rem 0.75rem; border:1px solid var(--color-border); border-radius:4px; font-family:var(--font-body); font-size:1rem;"><?php echo h($savedDecision['remarks'] ?? ''); ?></textarea>
+        <textarea id="remarks" name="remarks" rows="4" maxlength="2000"><?php echo h($savedDecision['remarks'] ?? ''); ?></textarea>
 
         <button type="submit" name="save_decision" value="1">Save decision</button>
     </form>

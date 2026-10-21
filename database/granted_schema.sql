@@ -122,6 +122,13 @@ CREATE TABLE renewal_decisions (
     FOREIGN KEY (decided_by) REFERENCES users(id),
     UNIQUE KEY unique_decision (scholar_id, school_year, semester)
 );
+CREATE TABLE login_attempts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_ip_time (ip, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO users (email, password_hash, role) VALUES
 ('admin@granted.local', '$2y$10$p89dwUfRPAiAj1V/Pe1YXe0g9oZWIoL4u.vWovomBu5sT7wWN3/.O', 'admin');
