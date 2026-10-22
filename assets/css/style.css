@@ -162,7 +162,6 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
     padding: 2rem 1.75rem 1.75rem;
 }
 .login-card__brand { text-align: center; margin-bottom: 1.5rem; }
-.login-card__mark { display: block; width: 2.75rem; height: 2.75rem; margin: 0 auto 0.75rem; color: var(--ul-maroon); }
 .login-card__title { font-size: 1.9rem; letter-spacing: 0.03em; color: var(--ul-maroon); margin-bottom: 0; }
 .login-card__title::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.6rem auto 0.75rem; background: var(--ul-gold); }
 .login-card__subtitle { max-width: none; color: var(--ul-muted); font-size: 0.9rem; }
