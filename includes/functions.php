@@ -19,12 +19,16 @@ function sanitize(?string $value): string
 function uiIcon(string $name): string
 {
     $icons = [
+        'bell' => 'bell.svg',
+        'book-text' => 'book-text.svg',
         'circle-alert' => 'circle-alert.svg',
         'circle-check' => 'circle-check-big.svg',
         'file-text' => 'file-text.svg',
         'inbox' => 'inbox.svg',
         'layout-list' => 'layout-list.svg',
+        'list-checks' => 'list-checks.svg',
         'log-out' => 'log-out.svg',
+        'pencil' => 'pencil.svg',
         'search' => 'search.svg',
         'settings' => 'settings.svg',
         'upload' => 'upload.svg',
@@ -54,6 +58,16 @@ function isLoggedIn(): bool
 function currentRole(): ?string
 {
     return $_SESSION['role'] ?? null;
+}
+
+function isAdminShell(): bool
+{
+    return isLoggedIn() && currentRole() === 'admin';
+}
+
+function isScholarShell(): bool
+{
+    return isLoggedIn() && currentRole() === 'scholar';
 }
 
 function statusBadgeClass(?string $status): string

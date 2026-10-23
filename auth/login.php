@@ -42,12 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Log in';
 require_once __DIR__ . '/../includes/header.php';
 ?>
-<div class="login-page">
-    <div class="login-card">
-        <div class="login-card__brand">
-            <h1 class="login-card__title">GRANTED</h1>
-            <p class="login-card__subtitle">Scholarship compliance monitoring<br>University of Luzon</p>
-        </div>
+<div class="login-split">
+    <section class="login-split__form" aria-labelledby="login-title">
+        <h1 id="login-title" class="login-split__title">Log in to GRANTED</h1>
 
         <?php if (isset($_GET['timeout'])): ?><p class="form-info" role="status">You were logged out after 30 minutes of inactivity. Please log in again.</p><?php endif; ?>
         <?php if ($error): ?><p class="form-error" role="alert"><?php echo sanitize($error); ?></p><?php endif; ?>
@@ -58,8 +55,18 @@ require_once __DIR__ . '/../includes/header.php';
             <input type="email" id="email" name="email" autocomplete="username" required autofocus>
             <label for="password">Password</label>
             <input type="password" id="password" name="password" autocomplete="current-password" required>
-            <button type="submit">Log in</button>
+            <button type="submit" data-submitting-label="Logging in...">Log in</button>
         </form>
-    </div>
+    </section>
+
+    <aside class="login-split__brand" aria-label="About GRANTED">
+        <p class="login-split__name">GRANTED</p>
+        <p class="login-split__org">University of Luzon</p>
+        <ul class="login-split__notes">
+            <li>Check your scholarship status and what each requirement needs.</li>
+            <li>Upload compliance documents before their deadlines.</li>
+            <li>See notifications about status changes and reminders.</li>
+        </ul>
+    </aside>
 </div>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -1,6 +1,9 @@
 # GRANTED web root (Phase 7). Needs AllowOverride All (the XAMPP default); verify with the checks in docs/DEPLOY_CHECKLIST.md.
 Options -Indexes
 
+ErrorDocument 403 /GRANTED/errors/403.php
+ErrorDocument 404 /GRANTED/errors/404.php
+
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>

@@ -60,6 +60,10 @@ function gmailClient(): Google\Client
     $client->setAuthConfig(GMAIL_CREDENTIALS_PATH);
     $client->setAccessType('offline');   // ask for a refresh token
     $client->setPrompt('consent');       // make Google return it every time we authorize
+    $client->setHttpClient(new \GuzzleHttp\Client([
+        'connect_timeout' => 3,
+        'timeout' => 10,
+    ]));
     return $client;
 }
 

@@ -37,7 +37,7 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1>Enter grades</h1>
-<p style="margin-bottom:1rem;"><a href="/GRANTED/admin/import_grades.php">Import many grades from a CSV file</a></p>
+<p style="margin-bottom:1rem;"><a class="btn btn--secondary" href="/GRANTED/admin/import_grades.php" style="margin-top:0;"><span class="icon-label"><?php echo uiIcon('upload'); ?>Import many grades from a CSV file</span></a></p>
 <div class="card">
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
     <?php if ($success): ?><p class="form-success"><?php echo sanitize($success); ?></p><?php endif; ?>

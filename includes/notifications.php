@@ -20,11 +20,11 @@ function notificationPlainText(string $value): string
 function notificationStatusBadge(string $status): string
 {
     $colors = [
-        'PASS' => ['#166534', '#dcfce7'],
-        'PENDING' => ['#9a3412', '#ffedd5'],
-        'FAIL' => ['#991b1b', '#fee2e2'],
+        'PASS' => ['#2E6F58', '#E4F0EA'],
+        'PENDING' => ['#8A5E0B', '#FBF1E1'],
+        'FAIL' => ['#B3492B', '#FBEAE4'],
     ];
-    [$textColor, $backgroundColor] = $colors[$status] ?? ['#57534e', '#f5f5f4'];
+    [$textColor, $backgroundColor] = $colors[$status] ?? ['#5C5C5C', '#F7F7F7'];
     $safeStatus = htmlspecialchars($status, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
     return '<span style="display: inline-block; padding: 6px 12px; border-radius: 16px; background: ' . $backgroundColor
@@ -43,10 +43,20 @@ function notificationLoginDestinations(): array
         $parts = parse_url($baseUrl);
         if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || !is_array($parts)
             || !in_array($parts['scheme'] ?? '', ['http', 'https'], true)
-            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])) {
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
             throw new InvalidArgumentException('Invalid GRANTED sign-in base URL for ' . $label . '.');
         }
-        $destinations[$label] = rtrim($baseUrl, '/') . '/auth/login.php';
+
+        $path = rtrim($parts['path'] ?? '', '/');
+        $path = preg_replace('~/(?:index\.php|auth/login\.php)$~i', '', $path);
+        $host = (string)$parts['host'];
+        if (strpos($host, ':') !== false && $host[0] !== '[') {
+            $host = '[' . $host . ']';
+        }
+        $authority = $parts['scheme'] . '://' . $host
+            . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        $destinations[$label] = $authority . rtrim((string)$path, '/') . '/auth/login.php';
     }
 
     return $destinations;
@@ -66,55 +76,55 @@ function notificationLoginButtons(): string
     $buttons = [];
     foreach (notificationLoginDestinations() as $label => $url) {
         $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $buttons[] = '<a href="' . $safeUrl . '" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;background:#990000;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:4px;">Open GRANTED (' . $label . ')</a>';
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $buttons[] = '<a href="' . $safeUrl . '" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;background:#A8180D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:4px;">Sign in to GRANTED (' . $safeLabel . ')</a>';
     }
-    return '<p style="margin:20px 0 8px;font-size:14px;font-weight:bold;">Sign in to continue:</p>'
+    return '<p style="margin:24px 0 10px;font-size:14px;font-weight:bold;color:#171717;">Sign in to continue:</p>'
         . '<p style="margin:0;">' . implode('', $buttons) . '</p>';
 }
 
-function notificationHtml(string $title, string $name, string $content): string
+function notificationHtml(string $category, string $title, string $name, string $content): string
 {
     $safeName = htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeCategory = htmlspecialchars($category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    // Email clients strip external CSS, so every visual rule is kept inline.
-    // The two-column layout is intentionally simplified to a single centered block for better compatibility across Gmail, Outlook, and mobile clients.
-    // The red, gold, and cream palette aligns with the university branding and makes status and deadline alerts stand out quickly.
     return '<!doctype html><html lang="en"><head>'
         . '<meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '</head>'
-        . '<body style="margin: 0; padding: 24px 12px; background: #f4f1ed; font-family: Arial, Helvetica, sans-serif; color: #292524;">'
-        . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-collapse: collapse;">'
-        . '<tr><td style="padding: 22px 28px; background: #990000; color: #ffffff; border-bottom: 5px solid #fdc600;">'
-        . '<div style="font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #ffe28a;">University of Luzon</div>'
-        . '<div style="margin-top: 5px; font-size: 24px; font-weight: bold;">GRANTED</div></td></tr>'
-        . '<tr><td style="padding: 30px 28px 24px;">'
-        . '<div style="font-size: 13px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #990000;">Scholarship update</div>'
-        . '<h1 style="margin: 8px 0 18px; font-size: 25px; line-height: 1.3; color: #292524;">' . $title . '</h1>'
-        . '<p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6;">Hello ' . $safeName . ',</p>'
+        . '<body style="margin:0;padding:24px 12px;background:#F7F7F7;font-family:Arial,Helvetica,sans-serif;color:#171717;">'
+        . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E5E5E5;border-collapse:collapse;">'
+        . '<tr><td style="padding:24px 28px;background:#A8180D;color:#FFFFFF;border-bottom:4px solid #C79900;">'
+        . '<div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#FFFFFF;">University of Luzon</div>'
+        . '<div style="margin-top:5px;font-size:24px;font-weight:bold;line-height:1.25;">GRANTED</div></td></tr>'
+        . '<tr><td style="padding:28px;">'
+        . '<div style="font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#A8180D;">' . $safeCategory . '</div>'
+        . '<h1 style="margin:8px 0 18px;font-size:24px;line-height:1.3;color:#171717;">' . $safeTitle . '</h1>'
+        . '<p style="margin:0 0 20px;font-size:16px;line-height:1.6;">Hello ' . $safeName . ',</p>'
         . $content
-        . '<p style="margin: 24px 0 0; font-size: 14px; line-height: 1.6;">Please sign in to GRANTED to review your scholarship requirements.</p>'
+        . '<p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#171717;">Sign in to GRANTED to review your scholarship information and next steps.</p>'
         . notificationLoginButtons() . '</td></tr>'
-        . '<tr><td style="padding: 18px 28px; background: #f8f6f2; border-top: 1px solid #e8e2d9; font-size: 12px; line-height: 1.6; color: #625d57;">'
+        . '<tr><td style="padding:18px 28px;background:#F7F7F7;border-top:1px solid #E5E5E5;font-size:12px;line-height:1.6;color:#5C5C5C;">'
         . 'GRANTED Scholarship Office<br>University of Luzon</td></tr></table></body></html>';
 }
 
 function buildStatusChangeEmail(string $fullName, string $oldStatus, string $newStatus): array
 {
     $name = notificationPlainText($fullName);
-    // The summary table highlights the before/after status change in a compact format so recipients can scan the update instantly.
     return [
         'GRANTED scholarship status update',
         "Hello {$name},\n\nYour scholarship status has changed from {$oldStatus} to {$newStatus}.\n\nPlease sign in to GRANTED to view your current requirements.\n\n" . notificationLoginText() . "\n\nGRANTED Scholarship Office",
         notificationHtml(
+            'Status change',
             'Your status has changed',
             $name,
-            '<p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Your scholarship status was updated. Here is the latest result:</p>'
-                . '<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse;">'
-                . '<tr><td style="padding: 12px 14px; background: #f8f6f2; border-bottom: 1px solid #e8e2d9; color: #625d57;">Previous status</td>'
-                . '<td style="padding: 12px 14px; background: #f8f6f2; border-bottom: 1px solid #e8e2d9; text-align: right;">' . notificationStatusBadge($oldStatus) . '</td></tr>'
-                . '<tr><td style="padding: 12px 14px; background: #fff8df; color: #625d57;">Current status</td>'
-                . '<td style="padding: 12px 14px; background: #fff8df; text-align: right;">' . notificationStatusBadge($newStatus) . '</td></tr></table>'
+            '<p style="margin:0 0 18px;font-size:15px;line-height:1.6;">Your calculated scholarship status has been updated. Compare the latest result below:</p>'
+                . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">'
+                . '<tr><td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;color:#5C5C5C;">Previous status</td>'
+                . '<td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;text-align:right;">' . notificationStatusBadge($oldStatus) . '</td></tr>'
+                . '<tr><td style="padding:14px;background:#FFFFFF;border-left:3px solid #A8180D;color:#171717;font-weight:bold;">Current status</td>'
+                . '<td style="padding:14px;background:#FFFFFF;border-right:1px solid #E5E5E5;text-align:right;">' . notificationStatusBadge($newStatus) . '</td></tr></table>'
         ),
     ];
 }
@@ -123,26 +133,42 @@ function buildDeadlineReminderEmail(string $fullName, string $documentType, stri
 {
     $name = notificationPlainText($fullName);
     $document = notificationPlainText($documentType);
-    $timestamp = strtotime($dueDate);
-    $formattedDate = $timestamp === false ? $dueDate : date('F j, Y', $timestamp);
+    $due = DateTimeImmutable::createFromFormat('!Y-m-d', $dueDate);
+    $validDueDate = $due !== false && $due->format('Y-m-d') === $dueDate;
+    $formattedDate = $validDueDate ? $due->format('F j, Y') : $dueDate;
+    $daysRemaining = $validDueDate
+        ? (int)(new DateTimeImmutable('today'))->diff($due)->format('%r%a')
+        : null;
+    $timing = $daysRemaining === null
+        ? 'Deadline reminder'
+        : ($daysRemaining < 0
+            ? 'Past due'
+            : ($daysRemaining === 0 ? 'Due today' : 'Due in ' . $daysRemaining . ' day' . ($daysRemaining === 1 ? '' : 's')));
+    $subject = $daysRemaining === 0
+        ? 'GRANTED document due today'
+        : ($daysRemaining !== null && $daysRemaining > 0
+            ? 'GRANTED document due in ' . $daysRemaining . ' day' . ($daysRemaining === 1 ? '' : 's')
+            : 'GRANTED document deadline reminder');
     $safeDocument = htmlspecialchars($document, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $safeDate = htmlspecialchars($formattedDate, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeTiming = htmlspecialchars($timing, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    // The deadline card is designed as a single highlighted block to make the required document and due date immediately visible without scanning a long message.
-    // The left gold border acts as a visual cue for urgency and helps the reminder stand out even in crowded inboxes.
     return [
-        'GRANTED document deadline reminder',
-        "Hello {$name},\n\nThis is a reminder that {$document} is due by {$formattedDate} ({$dueDate}). Please upload it in GRANTED before the deadline.\n\n" . notificationLoginText() . "\n\nGRANTED Scholarship Office",
+        $subject,
+        "Hello {$name},\n\n{$timing}: {$document} is due by {$formattedDate} ({$dueDate}). Please upload it in GRANTED before the deadline.\n\n" . notificationLoginText() . "\n\nGRANTED Scholarship Office",
         notificationHtml(
-            'A document deadline is approaching',
+            'Deadline reminder',
+            $daysRemaining === 0 ? 'A document is due today' : 'A document deadline is approaching',
             $name,
-            '<p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Please upload the following required document before its deadline:</p>'
-                . '<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse;">'
-                . '<tr><td style="padding: 16px; background: #f8f6f2; border-left: 4px solid #fdc600;">'
-                . '<div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #625d57;">Required document</div>'
-                . '<div style="margin-top: 6px; font-size: 18px; font-weight: bold; color: #292524;">' . $safeDocument . '</div>'
-                . '<div style="margin-top: 12px; font-size: 14px; color: #625d57;">Due by <strong style="color: #990000;">' . $safeDate . '</strong></div>'
-                . '</td></tr></table>'
+            '<p style="margin:0 0 18px;font-size:15px;line-height:1.6;">Please upload this required document before its deadline:</p>'
+                . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">'
+                . '<tr><td style="padding:16px;background:#F7F7F7;border-left:4px solid #C79900;">'
+                . '<div style="font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#5C5C5C;">Required document</div>'
+                . '<div style="margin-top:6px;font-size:18px;font-weight:bold;line-height:1.4;color:#171717;">' . $safeDocument . '</div>'
+                . '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E5E5;font-size:14px;color:#5C5C5C;">'
+                . '<span style="font-weight:bold;color:#171717;">' . $safeTiming . '</span>'
+                . '<span style="display:block;margin-top:4px;">Deadline: <strong style="color:#A8180D;">' . $safeDate . '</strong></span>'
+                . '</div></td></tr></table>'
         ),
     ];
 }

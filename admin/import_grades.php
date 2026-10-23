@@ -161,7 +161,7 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1>Import grades from CSV</h1>
-<p style="margin-bottom:1rem;"><a href="/GRANTED/admin/enter_grades.php">&larr; Enter a single grade instead</a></p>
+<p style="margin-bottom:1rem;"><a class="import-back-link" href="/GRANTED/admin/enter_grades.php">&larr; Enter a single grade instead</a></p>
 
 <div class="card">
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>

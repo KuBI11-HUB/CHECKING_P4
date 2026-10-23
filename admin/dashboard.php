@@ -14,6 +14,12 @@ $offset = ($paging['page'] - 1) * $paging['per_page'];
 $results = getResults($pdo, $filters, $paging['per_page'], $offset);
 
 $totalScholars = (int)$pdo->query('SELECT COUNT(*) FROM scholars')->fetchColumn();
+$statusCounts = ['PASS' => 0, 'PENDING' => 0, 'FAIL' => 0];
+foreach ($pdo->query('SELECT current_status, COUNT(*) AS c FROM scholars GROUP BY current_status')->fetchAll() as $row) {
+    if (isset($statusCounts[$row['current_status']])) {
+        $statusCounts[$row['current_status']] = (int)$row['c'];
+    }
+}
 $exportQuery = resultsQueryString($filters);                          // the CSV export ignores paging
 $_SESSION['results_query'] = resultsQueryString($filters, $paging);   // "Back to results" on a scholar page returns to this view
 
@@ -22,7 +28,19 @@ $resultsUrl = static function (array $override = []) use ($filters, $paging): st
     return '/GRANTED/admin/dashboard.php' . ($query !== '' ? '?' . $query : '');
 };
 
-// Active filters, shown as removable chips. Only filters that really apply are listed.
+/** Hidden inputs that carry the current filters through a GET form. Empty values are left out. */
+$hiddenFields = static function (array $values): string {
+    $html = '';
+    foreach ($values as $name => $value) {
+        if ($value === '' || $value === null) {
+            continue;
+        }
+        $html .= '<input type="hidden" name="' . sanitize((string)$name) . '" value="' . sanitize((string)$value) . '">';
+    }
+    return $html;
+};
+
+// Active filters shown as removable chips. Status has its own chip row, so it is not listed here.
 $activeFilters = [];
 if ($filters['q'] !== '') {
     $activeFilters[] = ['Search', $filters['q'], ['q' => '']];
@@ -30,37 +48,58 @@ if ($filters['q'] !== '') {
 if ($filters['program'] !== '' && in_array($filters['program'], $options['programs'], true)) {
     $activeFilters[] = ['Program', $filters['program'], ['program' => '']];
 }
-if ($filters['status'] !== '') {
-    $activeFilters[] = ['Status', $filters['status'], ['status' => '']];
-}
 foreach ($options['types'] as $type) {
     if ($filters['scholarship_type_id'] === (int)$type['id']) {
         $activeFilters[] = ['Type', $type['name'], ['scholarship_type_id' => 0]];
     }
 }
 
+$statusChips = ['' => 'All', 'PASS' => 'PASS', 'FAIL' => 'FAIL', 'PENDING' => 'PENDING'];
+
 $pageTitle = 'Admin Dashboard';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<h1>Admin dashboard</h1>
-<p>Logged in as <?php echo h($_SESSION['email']); ?>.</p>
+<div class="dashboard-page dashboard-page--admin">
+<div class="page-head">
+    <div>
+        <h1>Scholars</h1>
+        <p class="page-head__sub">Results for <strong><?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?></strong></p>
+    </div>
+</div>
 
-<div class="page-actions">
-    <a class="btn" href="/GRANTED/admin/enroll_scholar.php">+ Enroll scholar</a>
-    <a class="btn" href="/GRANTED/admin/enter_grades.php">+ Enter grades</a>
+<div class="stat-strip" role="group" aria-label="Enrolled scholars by calculated status">
+    <div class="stat"><span class="stat__label">Total scholars</span><span class="stat__value"><?php echo $totalScholars; ?></span></div>
+    <div class="stat stat--pass"><span class="stat__label">PASS</span><span class="stat__value"><?php echo $statusCounts['PASS']; ?></span></div>
+    <div class="stat stat--pending"><span class="stat__label">PENDING</span><span class="stat__value"><?php echo $statusCounts['PENDING']; ?></span></div>
+    <div class="stat stat--fail"><span class="stat__label">FAIL</span><span class="stat__value"><?php echo $statusCounts['FAIL']; ?></span></div>
 </div>
 
 <div class="card results-card">
-    <h2>Results</h2>
+    <div class="results-toolbar">
+        <form method="GET" action="/GRANTED/admin/dashboard.php" class="search-form" role="search">
+            <label for="q" class="visually-hidden">Search name or email</label>
+            <input type="search" id="q" name="q" value="<?php echo sanitize($filters['q']); ?>" maxlength="100" placeholder="Search name or email">
+            <?php echo $hiddenFields([
+                'program' => $filters['program'],
+                'status' => $filters['status'],
+                'scholarship_type_id' => $filters['scholarship_type_id'] > 0 ? $filters['scholarship_type_id'] : '',
+                'per_page' => $paging['per_page'] !== RESULTS_PER_PAGE_DEFAULT ? $paging['per_page'] : '',
+            ]); ?>
+            <button type="submit" class="btn btn--secondary"><span class="icon-label"><?php echo uiIcon('search'); ?>Search</span></button>
+        </form>
+
+        <nav class="status-chips" aria-label="Filter by calculated status">
+            <?php foreach ($statusChips as $value => $label): ?>
+                <a class="status-chip" href="<?php echo sanitize($resultsUrl(['status' => $value, 'page' => 1])); ?>"<?php echo $filters['status'] === $value ? ' aria-current="true"' : ''; ?>><?php echo h($label); ?></a>
+            <?php endforeach; ?>
+        </nav>
+    </div>
 
     <details class="filter-block" open>
         <summary>Filters<?php echo $activeFilters ? ' · ' . count($activeFilters) . ' active' : ''; ?></summary>
         <form method="GET" action="/GRANTED/admin/dashboard.php" class="filter-form">
-            <div class="filter-form__field filter-form__field--search">
-                <label for="q"><span class="icon-label"><?php echo uiIcon('search'); ?>Search name or email</span></label>
-                <input type="search" id="q" name="q" value="<?php echo sanitize($filters['q']); ?>" maxlength="100" placeholder="e.g. Maria or maria@gmail.com">
-            </div>
+            <?php echo $hiddenFields(['q' => $filters['q'], 'status' => $filters['status']]); ?>
             <div class="filter-form__field">
                 <label for="program">Program</label>
                 <select id="program" name="program">
@@ -68,15 +107,6 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php foreach ($options['programs'] as $program): ?>
                         <?php // The value stays exactly as stored so it matches in SQL; only the label is decoded. ?>
                         <option value="<?php echo sanitize($program); ?>" <?php echo $filters['program'] === $program ? 'selected' : ''; ?>><?php echo h($program); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-form__field">
-                <label for="status">Calculated status</label>
-                <select id="status" name="status">
-                    <option value="">All statuses</option>
-                    <?php foreach ($options['statuses'] as $status): ?>
-                        <option value="<?php echo h($status); ?>" <?php echo $filters['status'] === $status ? 'selected' : ''; ?>><?php echo h($status); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -115,10 +145,11 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
     <p class="results-summary">
-        Results for <strong><?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?></strong>.
         <?php if ($matching > 0): ?>
             Showing <strong><?php echo $offset + 1; ?>&ndash;<?php echo $offset + count($results); ?></strong>
             of <strong><?php echo $matching; ?></strong> scholars<?php echo $matching !== $totalScholars ? ' (' . $totalScholars . ' enrolled)' : ''; ?>.
+        <?php else: ?>
+            Showing <strong>0</strong> of <strong><?php echo $totalScholars; ?></strong> scholars.
         <?php endif; ?>
     </p>
 
@@ -167,6 +198,7 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
         </nav>
     <?php endif; ?>
+</div>
 </div>
 
 <script>

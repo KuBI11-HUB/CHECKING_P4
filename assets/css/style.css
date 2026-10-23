@@ -1,7 +1,7 @@
 :root {
     /* University of Luzon palette. Everything below points at these. */
-    --ul-maroon: #6f0e07;
-    --ul-maroon-dark: #570700;
+    --ul-maroon: #680700;
+    --ul-maroon-dark: #3d0500;
     --ul-gold: #C79900;
     --ul-bg: #F7F7F7;
     --ul-surface: #FFFFFF;
@@ -26,8 +26,8 @@
     --color-fail: #B3492B;
     --color-pending: #B8862E;
     --color-pending-text: #8A5E0B;   /* darker amber so the PENDING badge text is readable; the badge colors keep their meaning */
-    --font-heading: 'Source Serif 4', Georgia, serif;
-    --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: var(--font-body);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,8 +58,8 @@ a { color: var(--color-accent);
 }
 .site-header__brand { font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; color: var(--color-on-accent); }
 .site-header__nav { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.9rem; }
-.site-header__nav a { text-decoration: none; color: var(--color-on-accent); }
-.site-header__nav a:hover { text-decoration: underline; }
+.site-header__nav a { display: inline-flex; align-items: center; padding: 0.4rem 0.55rem; border-radius: 4px; text-decoration: none; color: var(--color-on-accent); }
+.site-header__nav a:hover, .site-header__nav a:focus-visible { background: rgba(255, 255, 255, 0.16); text-decoration: underline; }
 .ui-icon { display: inline-block; flex: none; width: 1.25rem; height: 1.25rem; vertical-align: middle; }
 .icon-label { display: inline-flex; align-items: center; gap: 0.45rem; }
 .icon-message { display: flex; align-items: flex-start; gap: 0.5rem; }
@@ -73,6 +73,7 @@ a { color: var(--color-accent);
 
 .site-main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; }
 .site-footer { text-align: center; padding: 1.5rem; color: var(--color-ink-soft); font-size: 0.85rem; }
+.site-footer p { margin-left: auto; margin-right: auto; }
 
 form label { display: block; font-size: 0.9rem; font-weight: 600; margin-top: 1.1rem; margin-bottom: 0.35rem; color: var(--ul-text); }
 form input, form select, form textarea {
@@ -90,6 +91,12 @@ button[type="submit"], .btn {
 }
 button[type="submit"]:hover, .btn:hover { background: var(--color-accent-hover); }
 button[type="submit"]:disabled { background: #6B6B6B; cursor: wait; opacity: 1; }
+
+.import-back-link {
+    display: inline-flex; align-items: center; padding: 0.4rem 0.65rem;
+    border-radius: 4px; color: var(--ul-muted); font-weight: 500; text-decoration: none;
+}
+.import-back-link:hover { background: var(--ul-bg); color: var(--ul-maroon); }
 
 .form-error { background: #FBEAE4; color: var(--color-fail); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
 .form-success { background: #E4F0EA; color: var(--color-pass); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
@@ -153,22 +160,45 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
 /* Office renewal decision: neutral outlined chip, deliberately unlike the coloured status pill */
 .decision-chip { display: inline-block; padding: 0.1rem 0.55rem; border: 1px solid var(--ul-text); border-radius: 3px; background: var(--ul-surface); color: var(--ul-text); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; }
 
-/* Login: one centered card */
-.login-page { padding-top: 6vh; }
-.login-card {
-    width: 100%; max-width: 24rem; margin: 0 auto;
+/* Login: form panel + brand panel, using the shared maroon palette. */
+.login-split {
+    --login-maroon: var(--ul-maroon);
+    --login-maroon-dark: var(--ul-maroon-dark);
+    display: grid; grid-template-columns: 1fr;
+    max-width: 52rem; margin: 4vh auto 0;
     background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    padding: 2rem 1.75rem 1.75rem;
+    overflow: hidden;
 }
-.login-card__brand { text-align: center; margin-bottom: 1.5rem; }
-.login-card__title { font-size: 1.9rem; letter-spacing: 0.03em; color: var(--ul-maroon); margin-bottom: 0; }
-.login-card__title::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.6rem auto 0.75rem; background: var(--ul-gold); }
-.login-card__subtitle { max-width: none; color: var(--ul-muted); font-size: 0.9rem; }
-.login-card .form-error, .login-card .form-info { margin: 0 0 1rem; }
-.login-card form label:first-of-type { margin-top: 0; }
-.login-card input { padding: 0.75rem 0.85rem; }
-.login-card button[type="submit"] { width: 100%; margin-top: 1.5rem; padding: 0.8rem 1rem; font-size: 1rem; }
+.login-split__form { padding: 2rem 1.5rem; }
+.login-split__title { font-size: 1.6rem; margin-bottom: 1rem; }
+.login-split .form-error, .login-split .form-info { margin: 0 0 1rem; }
+.login-split form label:first-of-type { margin-top: 0; }
+.login-split input { padding: 0.75rem 0.85rem; }
+.login-split button[type="submit"] { width: 100%; margin-top: 1.5rem; padding: 0.8rem 1rem; background: var(--login-maroon); }
+.login-split button[type="submit"]:hover { background: var(--login-maroon-dark); }
+.login-split button[type="submit"]:disabled { background: #6B6B6B; }
+
+.login-split__brand { padding: 1.25rem 1.5rem; background: var(--login-maroon); color: #FFFFFF; }
+.login-split__name { font-family: var(--font-heading); font-weight: 700; font-size: 1.4rem; letter-spacing: 0.03em; line-height: 1.2; }
+.login-split__name::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.5rem 0 0.6rem; background: var(--ul-gold); }
+.login-split__org { color: rgba(255, 255, 255, 0.9); }
+.login-split__notes { display: none; list-style: none; margin-top: 1.5rem; }
+.login-split__notes li { padding: 0.75rem 0; border-top: 1px solid rgba(255, 255, 255, 0.3); font-size: 0.95rem; line-height: 1.45; }
+
+@media (min-width: 761px) {
+    .login-split { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); margin-top: 8vh; }
+    .login-split__form { align-self: center; padding: 2.5rem 2.25rem; }
+    .login-split__brand { display: flex; flex-direction: column; justify-content: center; padding: 2.5rem 2.25rem; }
+    .login-split__name { font-size: 2.1rem; }
+    .login-split__notes { display: block; }
+}
+
+/* One quiet fade for the card, only when the visitor has not asked for reduced motion. */
+@keyframes login-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+    .login-split { animation: login-fade 0.25s ease-out both; }
+}
 .form-info { padding: 0.65rem 0.85rem; border-left: 3px solid var(--ul-gold); background: #FBF7E8; color: var(--ul-text); border-radius: 0 4px 4px 0; font-size: 0.9rem; margin-bottom: 0.75rem; }
 
 
@@ -216,8 +246,8 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
 }
 
 @media (max-width: 480px) {
-    .login-page { padding-top: 2vh; }
-    .login-card { padding: 1.5rem 1.25rem; }
+    .login-split { margin-top: 0; }
+    .login-split__form { padding: 1.5rem 1.25rem; }
     .upload-card { padding: 1rem; }
     .dropzone { padding: 1.25rem 0.75rem; }
 }
@@ -245,6 +275,19 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
 .card.results-card { overflow: visible; }
 table.data-table--sticky { overflow: visible; }
 table.data-table--sticky th { position: sticky; top: 0; z-index: 1; background: var(--ul-maroon); color: var(--color-on-accent); box-shadow: 0 1px 0 var(--ul-maroon-dark); }
+/* Results + document review: roomier cells, clearer row hover (same highlight for keyboard focus). */
+table.data-table--sticky td { padding: 0.9rem 1.1rem; }
+table.data-table--sticky th { padding: 0.75rem 1.1rem; }
+table.data-table--sticky tbody tr:hover td,
+table.data-table--sticky tbody tr:focus-within td { background: #EFEFEF; }
+/* A link wrapped in .icon-label loses its underline (inline-flex does not inherit it), so restore it. */
+table.data-table a > .icon-label { text-decoration: underline; }
+/* Document review: pending rows carry the actions, reviewed rows go quiet. */
+table.data-table tr.review-row--pending td:first-child { box-shadow: inset 3px 0 0 var(--ul-gold); }
+table.data-table tr.review-row--done td { color: var(--ul-muted); }
+.review-form { display: flex; flex-direction: column; gap: 0.5rem; min-width: 14rem; }
+.review-form__buttons { display: flex; gap: 0.5rem; }
+.review-form button[type="submit"] { flex: 1 1 0; margin-top: 0; padding: 0.55rem 0.75rem; }
 @media (max-width: 760px) {
     .table-scroll { overflow-x: auto; }
     .table-scroll table.data-table { min-width: 44rem; }
@@ -283,6 +326,8 @@ table.data-table--sticky th { position: sticky; top: 0; z-index: 1; background: 
 .account-menu__sep { height: 1px; margin: 0.25rem 0; background: var(--ul-border); }
 .account-menu__panel a { display: block; padding: 0.6rem 1rem; color: var(--ul-text); text-decoration: none; }
 .account-menu__panel a:hover { background: var(--ul-bg); }
+.account-menu__panel a.account-menu__logout:hover,
+.account-menu__panel a.account-menu__logout:focus-visible { color: var(--color-fail); }
 .account-menu__panel a:focus-visible { outline-color: var(--ul-maroon); outline-offset: -2px; }
 
 /* Narrow screens: collapsing nav links; the account chip stays top-right */
@@ -290,7 +335,7 @@ table.data-table--sticky th { position: sticky; top: 0; z-index: 1; background: 
     .js .nav-toggle { display: inline-block; }
     .js .site-header__nav { display: none; order: 3; flex-basis: 100%; margin-left: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.4); }
     .js .site-header__nav.is-open { display: flex; }
-    .site-header__nav > a { padding: 0.45rem 0; }
+    .site-header__nav > a { padding: 0.45rem 0.55rem; }
     .site-header__actions { margin-left: auto; }
 }
 @media (max-width: 480px) {
@@ -306,4 +351,139 @@ table.data-table--sticky th { position: sticky; top: 0; z-index: 1; background: 
 @media (max-width: 480px) {
     .settings-list { grid-template-columns: 1fr; gap: 0.1rem; }
     .settings-list dd { margin-bottom: 0.5rem; }
+}
+
+/* ---- Shared signed-in shell: sidebar + top bar. Login keeps the simple header. ---- */
+.portal-shell {
+    display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-rows: auto 1fr;
+    grid-template-areas: "side top" "side content"; min-height: 100vh;
+}
+.portal-topbar {
+    grid-area: top; position: relative; z-index: 20;
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
+    padding: 0.6rem 2rem; background: var(--ul-surface); border-bottom: 1px solid var(--ul-border);
+}
+.portal-topbar__brand { display: none; align-items: center; gap: 0.55rem; margin-right: auto; font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; color: var(--color-accent); }
+.portal-topbar .account-chip { color: var(--ul-text); }
+.portal-topbar .account-chip:hover, .portal-topbar .account-menu[open] > .account-chip { background: var(--ul-bg); border-color: var(--ul-border-input); }
+.portal-topbar .account-chip__avatar { background: var(--color-accent); color: var(--color-on-accent); }
+.portal-topbar .nav-toggle { color: var(--ul-text); border-color: var(--ul-border-input); }
+
+.portal-sidebar {
+    grid-area: side; position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    display: flex; flex-direction: column;
+    background: var(--color-accent); color: var(--color-on-accent); border-right: 3px solid var(--color-gold);
+}
+.portal-sidebar__brand { padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+.portal-sidebar__identity { display: flex; align-items: center; gap: 0.65rem; }
+.portal-brand__logo { display: block; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 50%; object-fit: cover; background: var(--ul-surface); }
+.portal-sidebar__name { font-family: var(--font-heading); font-weight: 700; font-size: 1.4rem; letter-spacing: 0.03em; line-height: 1.2; }
+.portal-sidebar__org { margin-top: 0.15rem; font-size: 0.8rem; color: rgba(255, 255, 255, 0.85); }
+.portal-sidebar__nav { display: flex; flex-direction: column; padding: 0.75rem 0; }
+.portal-sidebar__nav a { display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 1.25rem; color: inherit; text-decoration: none; font-size: 0.95rem; }
+.portal-sidebar__nav a:hover { background: rgba(255, 255, 255, 0.1); }
+/* Active = filled row + gold bar + bolder label, so it does not rely on colour alone. */
+.portal-sidebar__nav a.is-active { background: rgba(255, 255, 255, 0.16); font-weight: 600; box-shadow: inset 4px 0 0 var(--color-gold); }
+.portal-sidebar a:focus-visible { outline-color: var(--color-on-accent); outline-offset: -2px; }
+
+.portal-content { grid-area: content; display: flex; flex-direction: column; min-width: 0; }
+.portal-content .site-main { flex: 1 0 auto; width: 100%; max-width: 72rem; }
+
+@media (max-width: 760px) {
+    .portal-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "top" "side" "content"; }
+    .portal-topbar { padding: 0.6rem 1rem; }
+    .portal-topbar__brand { display: inline-flex; }
+    .portal-sidebar { position: static; height: auto; border-right: 0; border-bottom: 3px solid var(--color-gold); }
+    .portal-sidebar__brand { display: none; }
+    .js .portal-sidebar { display: none; }
+    .js .portal-sidebar.is-open { display: flex; }
+    .portal-content .site-main { padding: 1.25rem 1rem; }
+}
+
+/* ---- Admin page header, summary strip, toolbar ---- */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem 1rem; margin-bottom: 1.25rem; }
+.page-head h1 { margin-bottom: 0; }
+.page-head__sub { color: var(--ul-muted); }
+.page-head .page-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0; }
+.page-head .btn { margin-top: 0; }
+
+.stat-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 1.25rem; background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px; }
+.stat { padding: 0.8rem 1.25rem; border-left: 1px solid var(--ul-border); }
+.stat:first-child { border-left: 0; }
+.stat__label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--ul-muted); }
+.stat__value { font-family: var(--font-heading); font-size: 1.6rem; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.stat--pass .stat__value { color: var(--color-pass); }
+.stat--pending .stat__value { color: var(--color-pending-text); }
+.stat--fail .stat__value { color: var(--color-fail); }
+@media (max-width: 600px) {
+    .stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:nth-child(3) { border-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--ul-border); }
+}
+
+.results-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; margin-bottom: 1rem; }
+.search-form { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 18rem; max-width: 26rem; }
+.search-form input { flex: 1 1 auto; min-width: 0; min-height: 2.6rem; }
+.search-form button { flex: none; min-height: 2.6rem; margin-top: 0; padding: 0.45rem 0.75rem; }
+
+.status-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.status-chip { display: inline-block; padding: 0.35rem 0.85rem; border: 1px solid var(--ul-border-input); border-radius: 999px; background: var(--ul-surface); color: var(--ul-text); font-size: 0.9rem; font-weight: 500; text-decoration: none; }
+.site-main a.status-chip:hover { background: var(--ul-bg); color: var(--ul-text); }
+.status-chip[aria-current="true"], .site-main a.status-chip[aria-current="true"]:hover { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); font-weight: 600; }
+
+/* Dashboard spacing and hierarchy */
+.dashboard-page--admin { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
+.dashboard-page--admin > * { min-width: 0; }
+.dashboard-page--admin .page-head { margin-bottom: 0; }
+.dashboard-page--admin .stat-strip,
+.dashboard-page--admin .results-card { margin-bottom: 0; }
+.dashboard-page--admin .results-card { padding: 1.25rem; }
+.dashboard-page--admin .results-summary { margin-bottom: 0.75rem; color: var(--ul-muted); }
+.dashboard-page--admin table.data-table th,
+.dashboard-page--admin table.data-table td { vertical-align: middle; }
+
+.dashboard-page--scholar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
+.dashboard-page--scholar > * { min-width: 0; }
+.dashboard-page--scholar .page-head { margin-bottom: 0; }
+.dashboard-page--scholar .card { margin-bottom: 0; }
+.scholar-summary__heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--ul-border); }
+.scholar-summary__heading h2 { margin-bottom: 0; font-size: 1.25rem; }
+.scholar-summary__label { margin-bottom: 0.2rem; color: var(--ul-muted); font-size: 0.8rem; font-weight: 600; }
+.scholar-summary__status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+.scholar-summary__metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; padding-top: 1rem; }
+.scholar-summary__metrics dt { color: var(--ul-muted); font-size: 0.85rem; }
+.scholar-summary__metrics dd { margin-top: 0.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dashboard-section h2 { margin-bottom: 0.75rem; font-size: 1.15rem; }
+.dashboard-section__context { margin-left: 0.25rem; color: var(--ul-muted); font-family: var(--font-body); font-size: 0.85rem; font-weight: 500; }
+.dashboard-section__action { margin-top: 1rem; }
+.dashboard-section__action .btn { margin-top: 0; }
+.dashboard-page--scholar table.data-table th,
+.dashboard-page--scholar table.data-table td { vertical-align: middle; }
+@media (max-width: 520px) {
+    .dashboard-page--admin .results-card { padding: 1rem; }
+    .scholar-summary__heading { align-items: flex-start; flex-direction: column; }
+    .scholar-summary__status { align-items: flex-start; }
+    .scholar-summary__metrics { grid-template-columns: 1fr; gap: 0.75rem; }
+}
+
+/* ---- Error pages (403 / 404): standalone card, no app shell ---- */
+.error-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem 1rem; }
+.error-card {
+    width: 100%; max-width: 28rem; text-align: center;
+    background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); padding: 2rem 1.75rem;
+}
+.error-card p { margin-left: auto; margin-right: auto; }
+.error-card__brand { font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; letter-spacing: 0.03em; color: var(--ul-maroon); }
+.error-card__brand::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.6rem auto 1.5rem; background: var(--ul-gold); }
+.error-card h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+.error-card__actions { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.75rem; }
+.error-card__actions .btn { margin-top: 0; width: 100%; text-align: center; }
+.error-card__actions [hidden] { display: none; }
+.error-card__code { margin-top: 1.5rem; font-size: 0.85rem; color: var(--ul-muted); }
+@media (min-width: 480px) {
+    .error-card__actions { flex-direction: row; justify-content: center; }
+    .error-card__actions .btn { width: auto; min-width: 9rem; }
 }

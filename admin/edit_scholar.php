@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (array_keys($form) as $key) {
         $form[$key] = is_string($_POST[$key] ?? null) ? $_POST[$key] : '';
     }
-    $fullName = sanitize($form['full_name']);
-    $program = sanitize($form['program']);
+    $fullName = clean($form['full_name']);
+    $program = clean($form['program']);
     $yearRaw = trim($form['year_level']);
     $newTypeId = (int)$form['scholarship_type_id'];
     $yearLevel = $yearRaw === '' ? null : filter_var($yearRaw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => SCHOLAR_YEAR_LEVEL_MAX]]);

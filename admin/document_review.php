@@ -53,10 +53,10 @@ require_once __DIR__ . '/../includes/header.php';
         </thead>
         <tbody>
         <?php foreach ($documents as $d): ?>
-            <tr>
+            <tr class="<?php echo $d['status'] === 'Pending Review' ? 'review-row--pending' : 'review-row--done'; ?>">
                 <td><?php echo sanitize($d['full_name']); ?></td>
                 <td><?php echo h($d['document_type']); ?></td>
-                <td><a href="/GRANTED/admin/view_document.php?id=<?php echo (int)$d['id']; ?>" target="_blank">View file</a></td>
+                <td><a href="/GRANTED/admin/view_document.php?id=<?php echo (int)$d['id']; ?>" target="_blank"><span class="icon-label"><?php echo uiIcon('file-text'); ?>View file</span></a></td>
                 <td><span class="status-badge <?php
                     echo $d['status'] === 'Verified' ? 'status-badge--pass'
                         : ($d['status'] === 'Rejected' ? 'status-badge--fail' : 'status-badge--pending');
@@ -64,12 +64,14 @@ require_once __DIR__ . '/../includes/header.php';
                 <td><?php echo sanitize($d['remarks'] ?: '—'); ?></td>
                 <td>
                     <?php if ($d['status'] === 'Pending Review'): ?>
-                    <form method="POST" action="" style="display:flex; gap:0.4rem; align-items:center;">
+                    <form method="POST" action="" class="review-form">
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="document_id" value="<?php echo (int)$d['id']; ?>">
-                        <input type="text" name="remarks" placeholder="remark (required if rejecting)" style="width:160px;">
-                        <button type="submit" name="decision" value="Verified" class="btn" style="margin-top:0;">Verify</button>
-                        <button type="submit" name="decision" value="Rejected" class="btn btn--danger" style="margin-top:0;">Reject</button>
+                        <input type="text" name="remarks" placeholder="Remark (needed to reject)" aria-label="Remark for <?php echo h($d['document_type']); ?>">
+                        <div class="review-form__buttons">
+                            <button type="submit" name="decision" value="Verified" class="btn" aria-label="Verify <?php echo h($d['document_type']); ?> from <?php echo h($d['full_name']); ?>">Verify</button>
+                            <button type="submit" name="decision" value="Rejected" class="btn btn--danger" aria-label="Reject <?php echo h($d['document_type']); ?> from <?php echo h($d['full_name']); ?>">Reject</button>
+                        </div>
                     </form>
                     <?php else: ?>
                         <em>reviewed</em>
@@ -85,4 +87,25 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<script>
+(function () {
+    document.querySelectorAll('.review-form').forEach(function (form) {
+        var remark = form.elements['remarks'];
+        var verify = form.querySelector('button[value="Verified"]');
+        var reject = form.querySelector('button[value="Rejected"]');
+        if (!remark || !verify || !reject) { return; }
+
+        // Enter in the remark box would press the first button (Verify). Make the choice explicit.
+        remark.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); }
+        });
+        remark.addEventListener('input', function () { remark.setCustomValidity(''); });
+        verify.addEventListener('click', function () { remark.setCustomValidity(''); });
+        // The scholar sees this remark, so a rejection needs one. Browser-side check only.
+        reject.addEventListener('click', function () {
+            remark.setCustomValidity(remark.value.trim() === '' ? 'Enter a remark so the scholar knows why this was rejected.' : '');
+        });
+    });
+})();
+</script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -3,6 +3,7 @@
 <footer class="site-footer">
     <p>GRANTED — Scholarship Compliance Monitoring, University of Luzon</p>
 </footer>
+<?php if (isAdminShell() || isScholarShell()): ?></div></div><?php endif; ?>
 <script>
 document.addEventListener('submit', function (event) {
     const form = event.target;
