@@ -17,7 +17,7 @@ if (!$existing) {
     <h1>Rule not found</h1>
     <div class="card">
         <p>There is no rule with that ID.</p>
-        <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/rules.php">Back to rules</a></p>
+        <p style="margin-top:1rem;"><a class="back-link" href="/GRANTED/admin/rules.php">&larr; Back to rules</a></p>
     </div>
     <?php
     require_once __DIR__ . '/../includes/footer.php';
@@ -79,7 +79,7 @@ $pageTitle = 'Edit Rule';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<p style="margin-bottom:1rem;"><a href="/GRANTED/admin/rules.php">&larr; Back to rules</a></p>
+<p style="margin-bottom:1rem;"><a class="back-link" href="/GRANTED/admin/rules.php">&larr; Back to rules</a></p>
 <h1>Edit rule</h1>
 
 <div class="card">

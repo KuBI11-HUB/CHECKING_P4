@@ -22,7 +22,7 @@ if (!$existing) {
     <h1>Grade not found</h1>
     <div class="card">
         <p>There is no grade with that ID. It may already have been deleted.</p>
-        <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/dashboard.php">Back to results</a></p>
+        <p style="margin-top:1rem;"><a class="back-link" href="/GRANTED/admin/dashboard.php">&larr; Back to results</a></p>
     </div>
     <?php
     require_once __DIR__ . '/../includes/footer.php';
@@ -85,7 +85,7 @@ $pageTitle = 'Edit Grade';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<p style="margin-bottom:1rem;"><a href="<?php echo $detailUrl; ?>">&larr; Back to <?php echo h($existing['full_name']); ?></a></p>
+<p style="margin-bottom:1rem;"><a class="back-link" href="<?php echo $detailUrl; ?>">&larr; Back to <?php echo h($existing['full_name']); ?></a></p>
 <h1>Edit grade</h1>
 
 <div class="card">

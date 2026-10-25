@@ -4,6 +4,26 @@ require_once __DIR__ . '/../includes/auth_check.php';
 
 $pdo = getDbConnection();
 $message = '';
+$types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
+// Read-only list filter from the URL (?type=ID). Anything that is not an existing type means "all".
+$typeFilter = is_string($_GET['type'] ?? null) && ctype_digit($_GET['type']) ? (int)$_GET['type'] : 0;
+if (!in_array($typeFilter, array_map('intval', array_column($types, 'id')), true)) {
+    $typeFilter = 0;
+}
+$statusFilter = is_string($_GET['status'] ?? null) && in_array($_GET['status'], ['active', 'inactive'], true)
+    ? $_GET['status']
+    : 'all';
+$rulesUrl = static function (int $typeId = 0, ?string $status = null) use ($statusFilter): string {
+    $params = [];
+    if ($typeId > 0) {
+        $params['type'] = $typeId;
+    }
+    $status = $status ?? $statusFilter;
+    if ($status !== 'all') {
+        $params['status'] = $status;
+    }
+    return '/GRANTED/admin/rules.php' . ($params ? '?' . http_build_query($params) : '');
+};
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -21,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($typeId !== false) {
             reevaluateScholarshipType($pdo, (int)$typeId);
         }
-        redirectTo('/GRANTED/admin/rules.php');
+        redirectTo($rulesUrl($typeFilter));
     }
 
     $result = validateRuleInput($pdo, $_POST);
@@ -37,17 +57,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $v['school_year'], $v['semester'], $v['due_date']]);
         // Scholars' statuses must reflect the new rule right away, not only after their next grade save.
         reevaluateScholarshipType($pdo, $v['scholarship_type_id']);
-        redirectTo('/GRANTED/admin/rules.php');
+        redirectTo($rulesUrl($typeFilter > 0 ? $v['scholarship_type_id'] : 0));
     }
 }
 
 $flash = takeFlash();
-$types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
-$rules = $pdo->query(
+$conditions = [];
+$params = [];
+if ($typeFilter > 0) {
+    $conditions[] = 'r.scholarship_type_id = ?';
+    $params[] = $typeFilter;
+}
+if ($statusFilter !== 'all') {
+    $conditions[] = 'r.is_active = ?';
+    $params[] = $statusFilter === 'active' ? 1 : 0;
+}
+$stmt = $pdo->prepare(
     'SELECT r.*, st.name AS type_name FROM rules r
-     JOIN scholarship_types st ON st.id = r.scholarship_type_id
-     ORDER BY r.is_active DESC, st.name, r.rule_type'
-)->fetchAll();
+     JOIN scholarship_types st ON st.id = r.scholarship_type_id'
+    . ($conditions ? ' WHERE ' . implode(' AND ', $conditions) : '')
+    . ' ORDER BY r.is_active DESC, st.name, r.rule_type'
+);
+$stmt->execute($params);
+$rules = $stmt->fetchAll();
 
 $pageTitle = 'Rules';
 require_once __DIR__ . '/../includes/header.php';
@@ -68,7 +100,7 @@ require_once __DIR__ . '/../includes/header.php';
         <label for="scholarship_type_id">Scholarship type</label>
         <select id="scholarship_type_id" name="scholarship_type_id" required>
             <?php foreach ($types as $t): ?>
-                <option value="<?php echo (int)$t['id']; ?>"><?php echo sanitize($t['name']); ?></option>
+                <option value="<?php echo (int)$t['id']; ?>" <?php echo $typeFilter === (int)$t['id'] ? 'selected' : ''; ?>><?php echo sanitize($t['name']); ?></option>
             <?php endforeach; ?>
         </select>
 
@@ -133,6 +165,20 @@ require_once __DIR__ . '/../includes/header.php';
 
 <div class="card">
     <h2>Existing rules</h2>
+    <?php if (count($types) > 1): ?>
+    <nav class="status-chips" aria-label="Filter rules by scholarship type" style="margin-bottom:1rem;">
+        <a class="status-chip" href="<?php echo $rulesUrl(); ?>"<?php echo $typeFilter === 0 ? ' aria-current="true"' : ''; ?>>All types</a>
+        <?php foreach ($types as $t): ?>
+            <a class="status-chip" href="<?php echo $rulesUrl((int)$t['id']); ?>"<?php echo $typeFilter === (int)$t['id'] ? ' aria-current="true"' : ''; ?>><?php echo h($t['name']); ?></a>
+        <?php endforeach; ?>
+    </nav>
+    <?php endif; ?>
+    <nav class="status-chips" aria-label="Filter rules by active status" style="margin-bottom:1rem;">
+        <a class="status-chip" href="<?php echo $rulesUrl($typeFilter, 'all'); ?>"<?php echo $statusFilter === 'all' ? ' aria-current="true"' : ''; ?>>All statuses</a>
+        <a class="status-chip" href="<?php echo $rulesUrl($typeFilter, 'active'); ?>"<?php echo $statusFilter === 'active' ? ' aria-current="true"' : ''; ?>>Active</a>
+        <a class="status-chip" href="<?php echo $rulesUrl($typeFilter, 'inactive'); ?>"<?php echo $statusFilter === 'inactive' ? ' aria-current="true"' : ''; ?>>Inactive</a>
+    </nav>
+    <p class="results-summary">Showing <strong><?php echo count($rules); ?></strong> rule<?php echo count($rules) === 1 ? '' : 's'; ?><?php echo $typeFilter > 0 ? ' for this type' : ''; ?>.</p>
     <ul class="rule-list">
         <?php foreach ($rules as $r): ?>
             <li class="rule-list__item">
@@ -156,7 +202,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </li>
         <?php endforeach; ?>
-        <?php if (empty($rules)): ?><li>No rules yet.</li><?php endif; ?>
+        <?php if (empty($rules)): ?><li><?php echo $typeFilter > 0 ? 'No rules for this type yet.' : 'No rules yet.'; ?></li><?php endif; ?>
     </ul>
 </div>
 

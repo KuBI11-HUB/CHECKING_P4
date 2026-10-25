@@ -16,7 +16,7 @@ function errorHomeLink(): array
     return ['Go to log in', '/GRANTED/auth/login.php'];
 }
 
-function renderErrorPage(int $status): void
+function renderErrorPage(int $status, ?string $customTitle = null, ?string $customMessage = null): void
 {
     $copy = [
         403 => ['Access denied', 'Your account does not have permission to open this page.'],
@@ -25,7 +25,8 @@ function renderErrorPage(int $status): void
     if (!isset($copy[$status])) {
         $status = 404;
     }
-    [$title, $message] = $copy[$status];
+    $title = $customTitle ?? $copy[$status][0];
+    $message = $customMessage ?? $copy[$status][1];
     [$homeLabel, $homeUrl] = errorHomeLink();
 
     if (!headers_sent()) {
@@ -40,8 +41,6 @@ function renderErrorPage(int $status): void
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title><?php echo h($title); ?> — GRANTED</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/GRANTED/assets/css/style.css">
 </head>
 <body>

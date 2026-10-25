@@ -22,7 +22,7 @@ if (!$existing) {
     <h1>Scholarship type not found</h1>
     <div class="card">
         <p>There is no scholarship type with that ID. It may already have been deleted.</p>
-        <p style="margin-top:1rem;"><a class="btn" href="<?php echo $listUrl; ?>">Back to scholarship types</a></p>
+        <p style="margin-top:1rem;"><a class="back-link" href="<?php echo $listUrl; ?>">&larr; Back to scholarship types</a></p>
     </div>
     <?php
     require_once __DIR__ . '/../includes/footer.php';
@@ -102,7 +102,7 @@ $pageTitle = 'Edit Scholarship Type';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<p style="margin-bottom:1rem;"><a href="<?php echo $listUrl; ?>">&larr; Back to scholarship types</a></p>
+<p style="margin-bottom:1rem;"><a class="back-link" href="<?php echo $listUrl; ?>">&larr; Back to scholarship types</a></p>
 <h1>Edit scholarship type</h1>
 
 <div class="card">

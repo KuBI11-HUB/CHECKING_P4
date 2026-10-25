@@ -35,13 +35,13 @@ $confirm = is_string($_POST['confirm_password'] ?? null) ? $_POST['confirm_passw
 $length = function_exists('mb_strlen') ? mb_strlen($new, 'UTF-8') : strlen($new);
 
 if ($new === '' || $confirm === '') {
-    setFlash('Not saved: enter the temporary password twice.');
+    setFlash('Not saved. Enter the temporary password twice.');
 } elseif ($length < TEMP_PASSWORD_MIN_LENGTH) {
-    setFlash('Not saved: the temporary password must be at least ' . TEMP_PASSWORD_MIN_LENGTH . ' characters.');
+    setFlash('Not saved. The temporary password must be at least ' . TEMP_PASSWORD_MIN_LENGTH . ' characters.');
 } elseif (strlen($new) > TEMP_PASSWORD_MAX_BYTES) {
-    setFlash('Not saved: the temporary password is too long (' . TEMP_PASSWORD_MAX_BYTES . ' characters at most).');
+    setFlash('Not saved. The temporary password must be no longer than ' . TEMP_PASSWORD_MAX_BYTES . ' characters.');
 } elseif ($new !== $confirm) {
-    setFlash('Not saved: the two passwords do not match.');
+    setFlash('Not saved. The passwords do not match.');
 } else {
     $stmt = $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
     $stmt->execute([password_hash($new, PASSWORD_DEFAULT), (int)$target['user_id']]);

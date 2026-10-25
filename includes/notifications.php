@@ -77,7 +77,7 @@ function notificationLoginButtons(): string
     foreach (notificationLoginDestinations() as $label => $url) {
         $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeLabel = htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $buttons[] = '<a href="' . $safeUrl . '" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;background:#A8180D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:4px;">Sign in to GRANTED (' . $safeLabel . ')</a>';
+        $buttons[] = '<a href="' . $safeUrl . '" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;background:#680700;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:4px;">Sign in to GRANTED (' . $safeLabel . ')</a>';
     }
     return '<p style="margin:24px 0 10px;font-size:14px;font-weight:bold;color:#171717;">Sign in to continue:</p>'
         . '<p style="margin:0;">' . implode('', $buttons) . '</p>';
@@ -95,11 +95,11 @@ function notificationHtml(string $category, string $title, string $name, string 
         . '</head>'
         . '<body style="margin:0;padding:24px 12px;background:#F7F7F7;font-family:Arial,Helvetica,sans-serif;color:#171717;">'
         . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E5E5E5;border-collapse:collapse;">'
-        . '<tr><td style="padding:24px 28px;background:#A8180D;color:#FFFFFF;border-bottom:4px solid #C79900;">'
+        . '<tr><td style="padding:24px 28px;background:#680700;color:#FFFFFF;border-bottom:4px solid #C79900;">'
         . '<div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#FFFFFF;">University of Luzon</div>'
         . '<div style="margin-top:5px;font-size:24px;font-weight:bold;line-height:1.25;">GRANTED</div></td></tr>'
         . '<tr><td style="padding:28px;">'
-        . '<div style="font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#A8180D;">' . $safeCategory . '</div>'
+        . '<div style="font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#680700;">' . $safeCategory . '</div>'
         . '<h1 style="margin:8px 0 18px;font-size:24px;line-height:1.3;color:#171717;">' . $safeTitle . '</h1>'
         . '<p style="margin:0 0 20px;font-size:16px;line-height:1.6;">Hello ' . $safeName . ',</p>'
         . $content
@@ -123,7 +123,7 @@ function buildStatusChangeEmail(string $fullName, string $oldStatus, string $new
                 . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">'
                 . '<tr><td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;color:#5C5C5C;">Previous status</td>'
                 . '<td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;text-align:right;">' . notificationStatusBadge($oldStatus) . '</td></tr>'
-                . '<tr><td style="padding:14px;background:#FFFFFF;border-left:3px solid #A8180D;color:#171717;font-weight:bold;">Current status</td>'
+                . '<tr><td style="padding:14px;background:#FFFFFF;border-left:3px solid #680700;color:#171717;font-weight:bold;">Current status</td>'
                 . '<td style="padding:14px;background:#FFFFFF;border-right:1px solid #E5E5E5;text-align:right;">' . notificationStatusBadge($newStatus) . '</td></tr></table>'
         ),
     ];
@@ -167,7 +167,7 @@ function buildDeadlineReminderEmail(string $fullName, string $documentType, stri
                 . '<div style="margin-top:6px;font-size:18px;font-weight:bold;line-height:1.4;color:#171717;">' . $safeDocument . '</div>'
                 . '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E5E5;font-size:14px;color:#5C5C5C;">'
                 . '<span style="font-weight:bold;color:#171717;">' . $safeTiming . '</span>'
-                . '<span style="display:block;margin-top:4px;">Deadline: <strong style="color:#A8180D;">' . $safeDate . '</strong></span>'
+                . '<span style="display:block;margin-top:4px;">Deadline: <strong style="color:#680700;">' . $safeDate . '</strong></span>'
                 . '</div></td></tr></table>'
         ),
     ];

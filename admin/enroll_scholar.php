@@ -43,10 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Run once now so a freshly enrolled scholar isn't left with no evaluation at all
                 evaluateScholar($pdo, $scholarId);
 
-                $success = sanitize($fullName) . ' was enrolled. They can log in with the email and password you just set.';
+                $success = sanitize($fullName) . ' was enrolled. Give them the login email and initial password.';
             } catch (Exception $e) {
                 $pdo->rollBack();
-                $message = 'Something went wrong — please try again.';
+                $message = 'The scholar could not be enrolled. Check the details and try again.';
             }
         }
     }
@@ -72,7 +72,7 @@ require_once __DIR__ . '/../includes/header.php';
         <input type="text" id="full_name" name="full_name" required>
 
         <label for="program">Program</label>
-        <input type="text" id="program" name="program" placeholder="e.g. BS Computer Science">
+        <input type="text" id="program" name="program" placeholder="Example: BS Computer Science">
 
         <label for="year_level">Year level</label>
         <input type="number" id="year_level" name="year_level" min="1" max="6">
@@ -85,10 +85,10 @@ require_once __DIR__ . '/../includes/header.php';
         </select>
 
         <label for="email">Login email</label>
-        <input type="email" id="email" name="email" placeholder="scholar's Gmail" required>
+        <input type="email" id="email" name="email" placeholder="Scholar's login email" required>
 
         <label for="password">Initial password</label>
-        <input type="text" id="password" name="password" placeholder="set a starting password for them" required>
+        <input type="text" id="password" name="password" placeholder="Set an initial password" required>
 
         <button type="submit">Enroll scholar</button>
     </form>

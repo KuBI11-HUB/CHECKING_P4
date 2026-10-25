@@ -26,7 +26,7 @@
     --color-fail: #B3492B;
     --color-pending: #B8862E;
     --color-pending-text: #8A5E0B;   /* darker amber so the PENDING badge text is readable; the badge colors keep their meaning */
-    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-heading: var(--font-body);
 }
 
@@ -39,7 +39,10 @@ body {
     line-height: 1.5;
 }
 
-h1, h2, h3 { font-family: var(--font-heading); font-weight: 700; line-height: 1.2; margin-bottom: 0.75rem; }
+h1, h2, h3 { font-family: var(--font-heading); line-height: 1.2; margin-bottom: 0.75rem; }
+h1 { font-size: 1.75rem; font-weight: 700; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+h3 { font-size: 1.125rem; font-weight: 600; }
 p { max-width: 65ch; }
 a { color: var(--color-accent);
 }
@@ -92,11 +95,15 @@ button[type="submit"], .btn {
 button[type="submit"]:hover, .btn:hover { background: var(--color-accent-hover); }
 button[type="submit"]:disabled { background: #6B6B6B; cursor: wait; opacity: 1; }
 
-.import-back-link {
-    display: inline-flex; align-items: center; padding: 0.4rem 0.65rem;
-    border-radius: 4px; color: var(--ul-muted); font-weight: 500; text-decoration: none;
+/* Shared outline treatment for back-navigation links. */
+.back-link {
+    display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.45rem 0.75rem;
+    border: 1px solid var(--ul-border); border-radius: 4px; background: var(--ul-surface);
+    color: var(--color-accent); font-weight: 500; text-decoration: none;
 }
-.import-back-link:hover { background: var(--ul-bg); color: var(--ul-maroon); }
+.back-link:hover { border-color: var(--color-accent); background: rgba(104, 7, 0, 0.06); color: var(--ul-maroon-dark); text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--ul-maroon); outline-offset: 2px; }
+@media (max-width: 760px), (pointer: coarse) { .back-link { min-height: 2.75rem; } }
 
 .form-error { background: #FBEAE4; color: var(--color-fail); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
 .form-success { background: #E4F0EA; color: var(--color-pass); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 0.5rem; }
@@ -115,8 +122,8 @@ button[type="submit"]:disabled { background: #6B6B6B; cursor: wait; opacity: 1; 
 .status-badge--pending { background: #FBF1E1; color: var(--color-pending-text); }
 
 .card { background: var(--ul-surface); border: 1px solid var(--ul-border); border-radius: 6px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; overflow-x: auto; }
-.card h2 { font-size: 1.2rem; margin-bottom: 0.6rem; }
-.card small { color: var(--ul-muted); }
+.card h2 { font-size: 1.25rem; margin-bottom: 0.6rem; }
+.card small { color: var(--ul-muted); font-size: 0.875rem; font-weight: 400; }
 
 table.data-table { width: 100%; border-collapse: collapse; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
 table.data-table th, table.data-table td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--ul-border); font-size: 0.95rem; line-height: 1.45; }
@@ -141,7 +148,7 @@ table.data-table .num { text-align: right; font-variant-numeric: tabular-nums; w
 .rule-list__action--deactivate:hover { color: white; background: var(--color-fail); }
 
 @media (max-width: 600px) {
-    .rule-list li { align-items: stretch; flex-direction: column; gap: 0.75rem; }
+    .rule-list li.rule-list__item { align-items: stretch; flex-direction: column; gap: 0.75rem; }
     .rule-list__actions { align-self: flex-start; }
 }
 
@@ -160,9 +167,12 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
 /* Office renewal decision: neutral outlined chip, deliberately unlike the coloured status pill */
 .decision-chip { display: inline-block; padding: 0.1rem 0.55rem; border: 1px solid var(--ul-text); border-radius: 3px; background: var(--ul-surface); color: var(--ul-text); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; }
 
-/* Login: maroon brand panel with a curved edge + white form panel. */
-.site-main:has(.login-split) { width: 100%; max-width: none; margin: 0; padding: 0; }
+/* Login: centered rounded card. Maroon brand panel with layered circles + white form panel. */
+.site-main:has(.login-split) {
+    width: 100%; max-width: none; margin: 0; padding: 0;
+}
 body:has(.login-split) .site-footer { display: none; }
+
 .login-split {
     --login-maroon: var(--ul-maroon);
     --login-maroon-dark: var(--ul-maroon-dark);
@@ -171,61 +181,51 @@ body:has(.login-split) .site-footer { display: none; }
     background: var(--ul-surface);
     overflow: hidden;
 }
-/* Brand panel: mobile = on top, curved along the bottom edge. */
+
+/* Brand panel. Mobile: a dome on top. */
 .login-split__brand {
-    position: relative; isolation: isolate; overflow: hidden;
-    padding: 1.5rem 1.5rem 4rem; text-align: center;
+    padding: 1.75rem 1.5rem 3.5rem; text-align: center;
     background: var(--login-maroon); color: #FFFFFF;
-    border-radius: 0 0 50% 50% / 0 0 8rem 8rem;
+    border-radius: 0 0 50% 50% / 0 0 3.5rem 3.5rem;
 }
-.login-split__brand::after {
-    content: ""; position: absolute; z-index: 0; left: -14rem; bottom: -24rem;
-    width: 38rem; aspect-ratio: 1; border-radius: 50%;
-    background: rgba(255, 255, 255, 0.045); pointer-events: none;
-}
-.login-split__brand > * { position: relative; z-index: 1; }
-.login-split__logo { display: block; width: 3.5rem; height: 3.5rem; margin: 0 auto 0.75rem; border-radius: 50%; object-fit: cover; background: var(--ul-surface); }
-.login-split__name { font-family: var(--font-heading); font-weight: 700; font-size: 1.5rem; letter-spacing: 0.03em; line-height: 1.2; }
-.login-split__name::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.5rem auto 0.6rem; background: var(--ul-gold); }
-.login-split__tagline { font-weight: 600; }
-.login-split__org { color: rgba(255, 255, 255, 0.9); }
-.login-split__notes { display: none; list-style: none; margin-top: 1.5rem; text-align: left; }
-.login-split__notes li { padding: 0.75rem 0; border-top: 1px solid rgba(255, 255, 255, 0.3); font-size: 0.95rem; line-height: 1.45; }
+.login-split__logo { display: block; width: 4rem; height: 4rem; margin: 0 auto 0.75rem; border-radius: 50%; object-fit: cover; background: var(--ul-surface); }
+.login-split__name { font-family: var(--font-heading); font-weight: 700; font-size: 1.6rem; letter-spacing: 0.03em; line-height: 1.2; }
+.login-split__name::after { content: ""; display: block; width: 3rem; height: 3px; margin: 0.5rem auto 0; background: var(--ul-gold); }
+.login-split__welcome { margin: 0.5rem auto 0; font-size: 1.125rem; font-weight: 600; }
+.login-split__line { margin: 0.2rem auto 0; color: rgba(255, 255, 255, 0.9); }
 
 /* Form panel */
-.login-split__form {
-    position: relative; isolation: isolate; overflow: hidden;
-    width: 100%; max-width: 32rem; margin: auto; padding: 2rem 1.5rem;
-}
-.login-split__form::before {
-    content: ""; position: absolute; z-index: 0; top: -17rem; right: -13rem;
-    width: 26rem; aspect-ratio: 1; border-radius: 50%;
-    background: linear-gradient(145deg, rgba(104, 7, 0, 0.09), rgba(199, 153, 0, 0.04));
-    pointer-events: none;
-}
-.login-split__form > * { position: relative; z-index: 1; }
-.login-split__title { font-size: 1.8rem; margin-bottom: 0.25rem; }
+.login-split__form { display: flex; flex-direction: column; justify-content: center; padding: 2rem 1.5rem; }
+.login-split__title { font-size: 1.75rem; margin-bottom: 0.25rem; color: var(--login-maroon); }
 .login-split__sub { margin-bottom: 1.25rem; color: var(--ul-muted); }
+.login-split__title, .login-split__sub, .login-split__help { text-align: center; margin-left: auto; margin-right: auto; }
 .login-split .form-error, .login-split .form-info { margin: 0 0 1rem; }
+.login-split .login-split__form > * { width: 100%; max-width: 26rem; margin-left: auto; margin-right: auto; }
 .login-split form label:first-of-type { margin-top: 0; }
-.login-split input { padding: 0.75rem 1.25rem; border: 1px solid rgba(104, 7, 0, 0.18); border-radius: 999px; background: var(--ul-bg); }
+.login-split input { padding: 0.75rem 1.25rem; border: 1px solid #CDBFBC; border-radius: 999px; background: #F5F2F1; }
 .login-split button[type="submit"] { display: block; width: min(100%, 12rem); margin: 1.5rem auto 0; padding: 0.8rem 1rem; border-radius: 999px; background: var(--login-maroon); }
 .login-split button[type="submit"]:hover { background: var(--login-maroon-dark); }
 .login-split button[type="submit"]:disabled { background: #6B6B6B; }
 .login-split__help { margin-top: 1.25rem; color: var(--ul-muted); font-size: 0.9rem; }
-.login-split__title, .login-split__sub, .login-split__help { text-align: center; margin-left: auto; margin-right: auto; }
 
 @media (min-width: 761px) {
-    .login-split { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+    .login-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 1fr; }
+
+    /* Left panel: a single smooth arc on the right edge. */
     .login-split__brand {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 3rem 3.5rem 3rem 2.5rem; text-align: center;
-        border-radius: 0 35% 0 0 / 0 50% 0 0;
+        padding: 3rem 3.5rem 3rem 2.5rem;
+        border-radius: 0 32% 0 0 / 0 42% 0 0;
     }
-    .login-split__logo { width: 4.5rem; height: 4.5rem; margin-bottom: 1rem; }
-    .login-split__name { font-size: 2.1rem; }
-    .login-split__notes { display: block; width: 100%; max-width: 28rem; }
-    .login-split__form { padding: 2.5rem; }
+
+    .login-split__logo { width: 7.5rem; height: 7.5rem; margin-bottom: 1.25rem; }
+    .login-split__name { font-size: 2.25rem; }
+    .login-split__welcome { margin-top: 1.75rem; font-size: 1.35rem; }
+    .login-split__line { margin-top: 0.75rem; max-width: 20rem; font-size: 1.1rem; }
+
+    /* Right panel: keep the form centered. */
+    .login-split__form { display: flex; flex-direction: column; justify-content: center; padding: 4.5rem 3rem 3rem; }
+    .login-split__title { font-size: 1.75rem; }
 }
 
 /* One quiet fade for the card, only when the visitor has not asked for reduced motion. */
@@ -237,7 +237,7 @@ body:has(.login-split) .site-footer { display: none; }
 
 
 /* Scholar upload */
-.upload-page__title { text-align: center; font-size: clamp(1.6rem, 5vw, 2rem); }
+.upload-page__title { text-align: center; font-size: clamp(1.5rem, 4vw, 1.75rem); }
 .upload-card { width: 100%; margin: 0 0 1.25rem; }
 .upload-form { width: 100%; max-width: 34rem; margin: 0 auto; }
 .upload-term { color: var(--ul-muted); font-size: 0.9rem; }
@@ -245,11 +245,13 @@ body:has(.login-split) .site-footer { display: none; }
 .dropzone {
     position: relative; text-align: center; padding: 1.5rem 1rem;
     border: 2px dashed var(--ul-border-input); border-radius: 6px; background: var(--ul-bg);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 .dropzone__prompt small { display: block; margin-top: 0.35rem; color: var(--ul-muted); }
 .dropzone__prompt > .icon-label { justify-content: center; }
 /* The real file input covers the zone, so click, tap, keyboard and native drop all work even without the script. */
 .dropzone__input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.dropzone:hover { border-style: solid; border-color: var(--ul-maroon); background: var(--ul-surface); box-shadow: 0 0 0 2px rgba(104, 7, 0, 0.08); }
 .dropzone:focus-within { border-color: var(--ul-maroon); outline: 2px solid var(--ul-maroon); outline-offset: 2px; }
 .dropzone.is-dragover { border-style: solid; border-color: var(--ul-maroon); background: var(--ul-surface); }
 @media (hover: none) { .dropzone__drag-hint { display: none; } }
@@ -280,8 +282,6 @@ body:has(.login-split) .site-footer { display: none; }
 }
 
 @media (max-width: 480px) {
-    .login-split { margin-top: 0; }
-    .login-split__form { padding: 1.5rem 1.25rem; }
     .upload-card { padding: 1rem; }
     .dropzone { padding: 1.25rem 0.75rem; }
 }
@@ -521,3 +521,73 @@ table.data-table tr.review-row--done td { color: var(--ul-muted); }
     .error-card__actions { flex-direction: row; justify-content: center; }
     .error-card__actions .btn { width: auto; min-width: 9rem; }
 }
+
+/* ---- Narrow screens: table scroll, stacked document review, touch targets, scholar lists ---- */
+
+/* Wide admin tables scroll sideways inside their card up to 1280px. Above that they fit and the sticky header works. */
+@media (max-width: 1280px) {
+    .table-scroll { overflow-x: auto; }
+    .table-scroll table.data-table { min-width: 44rem; }
+}
+
+/* Roomier use of narrow screens. */
+@media (max-width: 760px) {
+    table.data-table th, table.data-table td { padding: 0.7rem 0.6rem; }
+}
+@media (max-width: 520px) {
+    .card { padding: 1rem; }
+}
+
+/* Scrolling tables: a hint, and the first column (the scholar) stays visible while the rest scrolls. */
+@media (max-width: 900px) {
+    .table-scroll::before { content: "Scroll sideways to see all columns."; position: sticky; left: 0; display: block; margin-bottom: 0.5rem; color: var(--ul-muted); font-size: 0.8rem; }
+    table.data-table--sticky th:first-child,
+    table.data-table--sticky td:first-child { position: sticky; left: 0; width: 8rem; max-width: 8rem; overflow-wrap: anywhere; }
+    table.data-table--sticky td:first-child { z-index: 1; background: var(--ul-surface); box-shadow: 1px 0 0 var(--ul-border); }
+    table.data-table--sticky th:first-child { z-index: 3; }
+    table.data-table--sticky tr.review-row--pending td:first-child { box-shadow: inset 3px 0 0 var(--ul-gold), 1px 0 0 var(--ul-border); }
+}
+
+/* Document review: each row becomes a labelled block, so Verify / Reject are on screen without scrolling. Same cells, same form. */
+@media (max-width: 900px) {
+    .table-scroll:has(table.data-table--stack)::before { display: none; }
+    .table-scroll table.data-table--stack { min-width: 0; }
+    table.data-table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+    table.data-table--stack, table.data-table--stack tbody, table.data-table--stack tr { display: block; }
+    table.data-table--stack tr { padding: 0.5rem 0; border-bottom: 1px solid var(--ul-border); }
+    table.data-table--stack tr:last-child { border-bottom: 0; }
+    table.data-table--stack td, table.data-table--stack td:first-child {
+        display: flex; align-items: flex-start; gap: 0.75rem; position: static;
+        width: auto; max-width: none; padding: 0.4rem 0.75rem; border: 0; box-shadow: none;
+    }
+    table.data-table--stack td::before { flex: 0 0 5.5rem; color: var(--ul-muted); font-size: 0.8rem; font-weight: 600; }
+    table.data-table--stack td:nth-child(1)::before { content: "Scholar"; }
+    table.data-table--stack td:nth-child(2)::before { content: "Document"; }
+    table.data-table--stack td:nth-child(3)::before { content: "File"; }
+    table.data-table--stack td:nth-child(4)::before { content: "Status"; }
+    table.data-table--stack td:nth-child(5)::before { content: "Remarks"; }
+    table.data-table--stack td:nth-child(6)::before { content: "Action"; }
+    table.data-table--stack td.empty-state { justify-content: center; }
+    table.data-table--stack td.empty-state::before { content: none; }
+    table.data-table--stack .review-form { min-width: 0; flex: 1 1 auto; }
+}
+
+/* Touch targets: phones, and tablets that report a coarse pointer. */
+@media (max-width: 760px), (pointer: coarse) {
+    .nav-toggle { min-height: 2.75rem; }
+    .account-chip { min-height: 2.75rem; }
+    .account-menu__panel a { padding: 0.75rem 1rem; }
+    .status-chip { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.9rem; }
+    .search-form input, .search-form button { min-height: 2.75rem; }
+    .filter-chip { padding-left: 0.75rem; }
+    .filter-chip a { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; }
+    .filter-block > summary { padding: 0.75rem 0; }
+    .rule-list__action { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; }
+    .review-form button[type="submit"] { min-height: 2.75rem; }
+    .file-chip__remove { width: 2.75rem; height: 2.75rem; }
+    /* Links straight inside a cell (scholar name, View file, Edit): taller hit area without making rows taller. */
+    table.data-table td > a:not(.btn) { display: inline-block; padding: 0.7rem 0; margin: -0.7rem 0; }
+}
+
+/* Scholar and admin lists: the status badge keeps its size beside the text. */
+.rule-list li > .status-badge { flex: none; }

@@ -26,21 +26,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $problem = '';
     if ($current === '' || $new === '' || $confirm === '') {
-        $problem = 'please fill in all three password fields.';
+        $problem = 'Enter all three password fields.';
     } elseif ($hash === false || !password_verify($current, $hash)) {
-        $problem = 'your current password is incorrect.';
+        $problem = 'Current password is incorrect.';
     } elseif ($newLength < PASSWORD_MIN_LENGTH) {
-        $problem = 'the new password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
+        $problem = 'The new password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
     } elseif (strlen($new) > PASSWORD_MAX_BYTES) {
-        $problem = 'the new password is too long (' . PASSWORD_MAX_BYTES . ' characters at most).';
+        $problem = 'The new password must be no longer than ' . PASSWORD_MAX_BYTES . ' characters.';
     } elseif ($new !== $confirm) {
-        $problem = 'the new password and the confirmation do not match.';
+        $problem = 'The new password and confirmation do not match.';
     } elseif ($new === $current) {
-        $problem = 'the new password must be different from the current one.';
+        $problem = 'Choose a new password that differs from the current password.';
     }
 
     if ($problem !== '') {
-        $notice = flashBox('Not saved: ' . $problem);
+        $notice = flashBox('Not saved. ' . $problem);
     } else {
         $stmt = $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
         $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $_SESSION['user_id']]);

@@ -96,8 +96,13 @@ function verifyCsrf(): void
 {
     $sent = $_POST['csrf_token'] ?? '';
     if (!is_string($sent) || !hash_equals(csrfToken(), $sent)) {
-        http_response_code(403);
-        die('Your form expired or is invalid. Please go back, refresh the page and try again.');
+        // The login page loads init.php only, so make sure the error page code is here too.
+        require_once __DIR__ . '/error_page.php';
+        renderErrorPage(
+            403,
+            'Form expired',
+            'Your session expired or this form is no longer valid. Nothing was saved. Go back, reload the page and try again.'
+        );
     }
 }
 

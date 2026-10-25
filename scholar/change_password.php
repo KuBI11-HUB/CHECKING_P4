@@ -24,17 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newLength = function_exists('mb_strlen') ? mb_strlen($new, 'UTF-8') : strlen($new);
 
     if ($current === '' || $new === '' || $confirm === '') {
-        $message = 'Please fill in all three fields.';
+        $message = 'Enter all three password fields.';
     } elseif ($hash === false || !password_verify($current, $hash)) {
         $message = 'Your current password is incorrect.';
     } elseif ($newLength < PASSWORD_MIN_LENGTH) {
         $message = 'The new password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
     } elseif (strlen($new) > PASSWORD_MAX_BYTES) {
-        $message = 'The new password is too long (' . PASSWORD_MAX_BYTES . ' characters at most).';
+        $message = 'The new password must be no longer than ' . PASSWORD_MAX_BYTES . ' characters.';
     } elseif ($new !== $confirm) {
-        $message = 'The new password and the confirmation do not match.';
+        $message = 'The new password and confirmation do not match.';
     } elseif ($new === $current) {
-        $message = 'The new password must be different from the current one.';
+        $message = 'Choose a new password that differs from the current password.';
     } else {
         $stmt = $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
         $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $_SESSION['user_id']]);

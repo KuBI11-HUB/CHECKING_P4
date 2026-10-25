@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
     if ($email === '' || $password === '') {
-        $error = 'Please fill in both fields.';
+        $error = 'Enter your email and password.';
     } else {
         $pdo = getDbConnection();
 
@@ -43,21 +43,16 @@ $pageTitle = 'Log in';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <div class="login-split">
-    <section class="login-split__brand" aria-label="About GRANTED">
-        <img class="login-split__logo" src="/GRANTED/assets/icons/LOGO.jpg" alt="">
+    <aside class="login-split__brand" aria-label="About GRANTED">
+        <img class="login-split__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">
         <p class="login-split__name">GRANTED</p>
-        <p class="login-split__tagline">Scholarship Compliance Monitoring</p>
-        <p class="login-split__org">University of Luzon</p>
-        <ul class="login-split__notes">
-            <li>Check your scholarship status and what each requirement needs.</li>
-            <li>Upload compliance documents before their deadlines.</li>
-            <li>See notifications about status changes and reminders.</li>
-        </ul>
-    </section>
+        <p class="login-split__welcome">Scholarship compliance monitoring</p>
+        <p class="login-split__line">University of Luzon</p>
+    </aside>
 
     <section class="login-split__form" aria-labelledby="login-title">
-        <h1 id="login-title" class="login-split__title">Welcome</h1>
-        <p class="login-split__sub">Log in to your account to continue.</p>
+        <h1 id="login-title" class="login-split__title">Sign in</h1>
+        <p class="login-split__sub">Sign in with the account issued by the scholarship office.</p>
 
         <?php if (isset($_GET['timeout'])): ?><p class="form-info" role="status">You were logged out after 30 minutes of inactivity. Please log in again.</p><?php endif; ?>
         <?php if ($error): ?><p class="form-error" role="alert"><?php echo sanitize($error); ?></p><?php endif; ?>
@@ -65,9 +60,9 @@ require_once __DIR__ . '/../includes/header.php';
         <form method="POST" action="">
             <?php echo csrfField(); ?>
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" autocomplete="username" required autofocus>
+            <input type="email" id="email" name="email" autocomplete="username" placeholder="Enter your email address" required autofocus>
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Enter your password" required>
             <button type="submit" data-submitting-label="Logging in...">Log in</button>
         </form>
 

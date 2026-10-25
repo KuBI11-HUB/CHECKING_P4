@@ -23,7 +23,7 @@ if (!$scholar) {
     <h1>Scholar not found</h1>
     <div class="card">
         <p>There is no scholar with that ID.</p>
-        <p style="margin-top:1rem;"><a class="btn" href="/GRANTED/admin/dashboard.php">Back to results</a></p>
+        <p style="margin-top:1rem;"><a class="back-link" href="/GRANTED/admin/dashboard.php">&larr; Back to results</a></p>
         <p><a class="btn" href="/GRANTED/admin/edit_scholar.php?id=<?php echo $scholarId; ?>" style="margin-top:0.75rem;">Edit profile</a></p>
     </div>
     <?php
@@ -47,13 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $naturalDecision = ['PASS' => 'RENEWED', 'FAIL' => 'NOT_RENEWED'];   // what the calculation points to
 
     if (!in_array($decision, ['RENEWED', 'NOT_RENEWED', 'ON_HOLD'], true)) {
-        setFlash('Not saved: please choose a decision.');
+        setFlash('Not saved. Choose a decision.');
     } elseif ($seenStatus !== $currentStatus) {
-        setFlash('Not saved: the calculated status changed to ' . $currentStatus . ' after you opened this page. Please review it and decide again.');
+        setFlash('Not saved. The calculated status changed to ' . $currentStatus . '. Review it and save the decision again.');
     } elseif ($decision !== 'ON_HOLD' && ($naturalDecision[$currentStatus] ?? null) !== $decision && $remarks === '') {
-        setFlash('Not saved: remarks are required when the decision differs from the calculated status (' . $currentStatus . ').');
+        setFlash('Not saved. Add remarks when the decision differs from the calculated status (' . $currentStatus . ').');
     } elseif (strlen($remarks) > 2000) {
-        setFlash('Not saved: remarks are too long (2000 characters at most).');
+        setFlash('Not saved. Keep remarks under 2,000 characters.');
     } else {
         $stmt = $pdo->prepare(
             'INSERT INTO renewal_decisions
@@ -150,7 +150,7 @@ $pageTitle = plainText($scholar['full_name']);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<p style="margin-bottom:1rem;"><a href="<?php echo sanitize($backUrl); ?>">&larr; Back to results</a></p>
+<p style="margin-bottom:1rem;"><a class="back-link" href="<?php echo sanitize($backUrl); ?>">&larr; Back to results</a></p>
 <h1><?php echo h($scholar['full_name']); ?></h1>
 
 <?php echo flashBox($flash); ?>
@@ -171,7 +171,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php echo csrfField(); ?>
         <input type="hidden" name="scholar_id" value="<?php echo $scholarId; ?>">
 
-        <label for="login_email">Login email (read-only)</label>
+        <label for="login_email">Login email</label>
         <input type="email" id="login_email" value="<?php echo h($scholar['email']); ?>" readonly autocomplete="off" style="background:var(--color-bg);">
 
         <label for="account_new_password">Temporary password (at least 8 characters)</label>
@@ -180,9 +180,9 @@ require_once __DIR__ . '/../includes/header.php';
         <label for="account_confirm_password">Confirm temporary password</label>
         <input type="password" id="account_confirm_password" name="confirm_password" autocomplete="new-password" minlength="8" required>
 
-        <button type="submit" onclick="return confirm('Set a new password for this scholar? Their old password will stop working.');">Set temporary password</button>
+        <button type="submit" onclick="return confirm('Set a temporary password for this scholar? Their current password will stop working.');">Set temporary password</button>
     </form>
-    <p style="margin-top:1rem;"><small>This only changes the sign-in password. It does not change the scholar's status or any renewal record.</small></p>
+    <p style="margin-top:1rem;"><small>This changes only the sign-in password. The scholar's status and renewal record stay the same.</small></p>
 </div>
 
 <div class="card">

@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($pageTitle) ? sanitize($pageTitle) . ' — GRANTED' : 'GRANTED'; ?></title>
-    <link rel="icon" type="image/jpeg" href="/GRANTED/assets/icons/LOGO.jpg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/GRANTED/assets/icons/LOGO.png">
     <link rel="stylesheet" href="/GRANTED/assets/css/style.css">
     <script>document.documentElement.className += ' js';</script>
 </head>
@@ -37,13 +35,13 @@ $activePage = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
 <div class="portal-shell <?php echo isAdminShell() ? 'portal-shell--admin' : 'portal-shell--scholar'; ?>">
     <header class="portal-topbar">
         <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
-        <span class="portal-topbar__brand"><img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.jpg" alt="">GRANTED</span>
+        <span class="portal-topbar__brand"><img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">GRANTED</span>
         <?php include __DIR__ . '/account_menu.php'; ?>
     </header>
     <aside class="portal-sidebar" id="site-nav">
         <div class="portal-sidebar__brand">
             <div class="portal-sidebar__identity">
-                <img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.jpg" alt="">
+                <img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">
                 <p class="portal-sidebar__name">GRANTED</p>
             </div>
             <p class="portal-sidebar__org">University of Luzon</p>

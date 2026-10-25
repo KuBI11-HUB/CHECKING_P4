@@ -1,0 +1,2 @@
+# Settings, database overrides and the Gmail credentials/token are read by PHP, never over HTTP.
+Require all denied

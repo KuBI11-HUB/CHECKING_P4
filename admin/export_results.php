@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/auth_check.php';
 
 $pdo = getDbConnection();
 $results = getResults($pdo, normalizeResultFilters($_GET));
+const CSV_SEPARATOR = ',';
 
 /** Plain text for a CSV cell. A leading = + - @ tab or CR could run as a spreadsheet formula, so it gets a ' in front. */
 function csvText(?string $value): string
@@ -22,7 +23,7 @@ $out = fopen('php://output', 'w');
 fwrite($out, "\xEF\xBB\xBF");   // UTF-8 BOM so Excel shows accents correctly
 
 fputcsv($out, ['Name', 'Email', 'Program', 'Year level', 'Scholarship type', 'School year', 'Semester',
-    'GPA', 'Units', 'Calculated status', 'Office decision', 'Decision remarks'], ',', '"', '\\');
+    'GPA', 'Units', 'Calculated status', 'Office decision', 'Decision remarks'], CSV_SEPARATOR, '"', '\\');
 
 foreach ($results as $s) {
     fputcsv($out, [
@@ -38,6 +39,6 @@ foreach ($results as $s) {
         $s['current_status'],
         $s['office_decision'],
         csvText($s['decision_remarks']),
-    ], ',', '"', '\\');
+    ], CSV_SEPARATOR, '"', '\\');
 }
 fclose($out);

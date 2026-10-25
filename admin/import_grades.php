@@ -49,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $file = $_FILES['csv_file'] ?? null;
 
     if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)$file['tmp_name'])) {
-        $message = 'Please choose a CSV file to import.';
+        $message = 'Choose a CSV file under 1 MB.';
     } elseif (strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION)) !== 'csv') {
-        $message = 'Only .csv files are allowed.';
+        $message = 'Choose a .csv file.';
     } elseif ((int)$file['size'] > GRADE_IMPORT_MAX_BYTES) {
         $message = 'File is too large — 1MB maximum.';
     } else {
@@ -161,26 +161,119 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <h1>Import grades from CSV</h1>
-<p style="margin-bottom:1rem;"><a class="import-back-link" href="/GRANTED/admin/enter_grades.php">&larr; Enter a single grade instead</a></p>
+<p style="margin-bottom:1rem;"><a class="back-link" href="/GRANTED/admin/enter_grades.php">&larr; Enter a single grade instead</a></p>
 
 <div class="card">
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
 
-    <p>The first row must be a header. Columns:</p>
-    <ul style="margin:0.5rem 0 0 1.25rem;">
-        <li><strong>email</strong>, <strong>subject</strong>, <strong>grade</strong> (1.00–5.00), <strong>units</strong> (1–10): required.</li>
-        <li><strong>school_year</strong>, <strong>semester</strong>: optional. When missing or blank, the current term (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>) is used.</li>
-        <li>Each row follows the same rules as Enter Grades. Rows already recorded are skipped. Up to <?php echo GRADE_IMPORT_MAX_ROWS; ?> rows, 1MB, UTF-8.</li>
-    </ul>
+    <p>Required columns: <strong>email</strong>, <strong>subject</strong>, <strong>grade</strong>, and <strong>units</strong>.</p>
+    <p>Optional columns: <strong>school_year</strong> and <strong>semester</strong>. Blank values use the current term (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>).</p>
+    <p>Use the first row for column names. Grades must be 1.00–5.00; units must be 1–10. Existing grades are skipped. Maximum: <?php echo GRADE_IMPORT_MAX_ROWS; ?> rows, 1 MB, UTF-8.</p>
 <pre style="margin-top:0.75rem; font-size:0.85rem;">email,subject,grade,units,school_year,semester
-maria@example.com,CS 101,1.75,3,2026-2027,1st</pre>
+maria@example.com,CS 101,1.75,3,<?php echo h(CURRENT_SCHOOL_YEAR); ?>,<?php echo h(CURRENT_SEMESTER); ?></pre>
 
-    <form method="POST" action="" enctype="multipart/form-data">
+    <form method="POST" action="" enctype="multipart/form-data" id="import-form" style="max-width:34rem;">
         <?php echo csrfField(); ?>
         <label for="csv_file">CSV file</label>
-        <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+        <div class="dropzone" id="dropzone">
+            <div class="dropzone__prompt">
+                <span class="icon-label"><?php echo uiIcon('upload'); ?><strong>Choose a CSV file</strong><span class="dropzone__drag-hint"> or drag it here</span></span>
+                <small id="file-hint">CSV only &middot; 1 MB maximum &middot; up to <?php echo GRADE_IMPORT_MAX_ROWS; ?> rows</small>
+            </div>
+            <input type="file" class="dropzone__input" id="csv_file" name="csv_file"
+                   accept=".csv,text/csv" title="Choose a CSV file" aria-describedby="file-hint" required>
+        </div>
+        <p class="form-error" id="file-error" role="alert" hidden></p>
+
+        <div class="file-chip" id="file-chip" hidden>
+            <span class="file-chip__type" id="file-type"></span>
+            <span class="file-chip__name" id="file-name"></span>
+            <span class="file-chip__size" id="file-size"></span>
+            <button type="button" class="file-chip__remove" id="file-remove" aria-label="Remove selected file">&times;</button>
+        </div>
+
         <button type="submit" data-submitting-label="Importing...">Import</button>
     </form>
+
+    <script>
+    (function () {
+        var MAX_BYTES = 1024 * 1024;
+        var ALLOWED = ['csv'];
+
+        var form = document.getElementById('import-form');
+        var zone = document.getElementById('dropzone');
+        var input = document.getElementById('csv_file');
+        var chip = document.getElementById('file-chip');
+        var typeEl = document.getElementById('file-type');
+        var nameEl = document.getElementById('file-name');
+        var sizeEl = document.getElementById('file-size');
+        var removeBtn = document.getElementById('file-remove');
+        var errorEl = document.getElementById('file-error');
+        if (!form || !zone || !input) { return; }
+
+        function extensionOf(name) {
+            var dot = name.lastIndexOf('.');
+            return dot === -1 ? '' : name.slice(dot + 1).toLowerCase();
+        }
+        function formatSize(bytes) {
+            return bytes < 1048576
+                ? Math.max(1, Math.round(bytes / 1024)) + ' KB'
+                : (bytes / 1048576).toFixed(1) + ' MB';
+        }
+        function showError(text) { errorEl.textContent = text; errorEl.hidden = false; }
+        function clearError() { errorEl.textContent = ''; errorEl.hidden = true; }
+        function clearFile() { input.value = ''; chip.hidden = true; }
+
+        // Convenience only: the server checks type, size and every row again.
+        function problemWith(file) {
+            if (ALLOWED.indexOf(extensionOf(file.name)) === -1) { return 'Choose a .csv file.'; }
+            if (file.size > MAX_BYTES) { return 'Choose a CSV file under 1 MB.'; }
+            return '';
+        }
+
+        function show(file) {
+            clearError();
+            var problem = problemWith(file);
+            if (problem) { clearFile(); showError(problem); return; }
+            typeEl.textContent = extensionOf(file.name).toUpperCase();
+            nameEl.textContent = file.name;
+            nameEl.title = file.name;
+            sizeEl.textContent = formatSize(file.size);
+            chip.hidden = false;
+        }
+
+        input.addEventListener('change', function () {
+            if (input.files && input.files.length) { show(input.files[0]); } else { clearFile(); }
+        });
+
+        zone.addEventListener('dragenter', function (e) { e.preventDefault(); zone.classList.add('is-dragover'); });
+        zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('is-dragover'); });
+        zone.addEventListener('dragleave', function () { zone.classList.remove('is-dragover'); });
+        zone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            zone.classList.remove('is-dragover');
+            var files = e.dataTransfer ? e.dataTransfer.files : null;
+            if (!files || !files.length) { return; }
+            clearError();
+            if (files.length > 1) { clearFile(); showError('Please drop one file at a time.'); return; }
+            try { input.files = files; } catch (err) { /* checked below */ }
+            if (input.files && input.files.length === 1) {
+                show(input.files[0]);
+            } else {
+                clearFile();
+                showError('Your browser could not take the dropped file. Please use "Choose a CSV file".');
+            }
+        });
+
+        removeBtn.addEventListener('click', function () { clearFile(); clearError(); input.focus(); });
+
+        // A file dropped outside the zone should not make the browser leave the page.
+        window.addEventListener('dragover', function (e) { e.preventDefault(); });
+        window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+        if (input.files && input.files.length) { show(input.files[0]); }   // e.g. after the back button
+    })();
+    </script>
 </div>
 
 <?php if ($summary !== null): ?>
