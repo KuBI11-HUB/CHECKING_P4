@@ -108,12 +108,23 @@ foreach ($stmt->fetchAll() as $g) {
 $gradeActions = static function (array $g): string {
     $id = (int)$g['id'];
     return '<a href="/GRANTED/admin/edit_grade.php?id=' . $id . '">Edit</a>'
-        . '<form method="POST" action="/GRANTED/admin/delete_grade.php" style="display:inline; margin-left:0.75rem;">'
+        . '<form method="POST" action="/GRANTED/admin/delete_grade.php" class="inline-confirm-form">'
         . csrfField()
         . '<input type="hidden" name="grade_id" value="' . $id . '">'
-        . '<button type="submit" onclick="return confirm(\'Delete this grade? The status will be recalculated.\');" '
-        . 'style="margin:0; padding:0; background:none; color:var(--color-fail); font-size:inherit; font-weight:normal; text-decoration:underline;">Delete</button>'
+        . '<button type="button" data-grade-confirmation-trigger aria-controls="grade-delete-confirmation-' . $id . '" aria-expanded="false" class="inline-confirm-trigger">Delete</button>'
         . '</form>';
+};
+$gradeConfirmation = static function (array $g, int $colspan): string {
+    $id = (int)$g['id'];
+    return '<tr id="grade-delete-confirmation-' . $id . '" class="grade-delete-confirmation" hidden>'
+        . '<td colspan="' . $colspan . '"><div class="form-info grade-delete-confirmation__content">'
+        . '<p>Delete this grade? The status will be recalculated.</p>'
+        . '<form method="POST" action="/GRANTED/admin/delete_grade.php" class="grade-delete-confirmation__actions">'
+        . csrfField()
+        . '<input type="hidden" name="grade_id" value="' . $id . '">'
+        . '<button class="btn btn--secondary" type="button" data-grade-confirmation-cancel>Cancel</button>'
+        . '<button class="btn" type="submit">Delete</button>'
+        . '</form></div></td></tr>';
 };
 
 $stmt = $pdo->prepare(
@@ -167,7 +178,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="card">
     <h2>Account access</h2>
     <p class="form-info">Walk-in requests only. Before setting a temporary password, check the person's school ID card against the full name and login email shown on this page. If anything does not match, do not continue.</p>
-    <form method="POST" action="/GRANTED/admin/set_scholar_password.php" style="max-width:26rem;" autocomplete="off">
+    <form id="temporary-password-form" method="POST" action="/GRANTED/admin/set_scholar_password.php" style="max-width:26rem;" autocomplete="off" data-confirmation>
         <?php echo csrfField(); ?>
         <input type="hidden" name="scholar_id" value="<?php echo $scholarId; ?>">
 
@@ -180,7 +191,14 @@ require_once __DIR__ . '/../includes/header.php';
         <label for="account_confirm_password">Confirm temporary password</label>
         <input type="password" id="account_confirm_password" name="confirm_password" autocomplete="new-password" minlength="8" required>
 
-        <button type="submit" onclick="return confirm('Set a temporary password for this scholar? Their current password will stop working.');">Set temporary password</button>
+        <button type="submit" data-confirmation-trigger>Set temporary password</button>
+        <div class="form-info action-confirmation" data-confirmation-panel hidden role="group" aria-label="Confirm temporary password">
+            <p>Set a temporary password? Their current password will stop working.</p>
+            <div class="temporary-password-confirmation__actions">
+                <button class="btn btn--secondary" type="button" data-confirmation-cancel>Cancel</button>
+                <button type="submit">Confirm</button>
+            </div>
+        </div>
     </form>
     <p style="margin-top:1rem;"><small>This changes only the sign-in password. The scholar's status and renewal record stay the same.</small></p>
 </div>
@@ -259,6 +277,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <td class="num"><?php echo (int)$g['units']; ?></td>
                 <td><?php echo $gradeActions($g); ?></td>
             </tr>
+            <?php echo $gradeConfirmation($g, 4); ?>
         <?php endforeach; ?>
         <?php if (empty($grades)): ?>
             <tr><td colspan="4">No grades recorded for this term.</td></tr>
@@ -284,6 +303,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <td><?php echo h($g['school_year'] . ' ' . $g['semester']); ?></td>
                 <td><?php echo $gradeActions($g); ?></td>
             </tr>
+            <?php echo $gradeConfirmation($g, 5); ?>
         <?php endforeach; ?>
         </tbody>
     </table>

@@ -4,7 +4,7 @@ How to build the GRANTED database from scratch, what every table and column is f
 
 - **Database name:** `granted_db`
 - **Engine:** MySQL / MariaDB (the one that comes with XAMPP), charset utf8mb4 through PDO
-- **Size:** 9 tables (Phases 1–5)
+- **Size:** 10 tables (Phases 1–5)
 - **Files you need:** `database/granted_schema.sql` (fresh install), or the applicable migration files (existing database)
 - **Where these files live:** `database/` inside the project, which is in GitHub.
 
@@ -38,17 +38,17 @@ C:\xampp\htdocs\GRANTED\
 3. Click **Choose File** and pick `GRANTED\database\granted_schema.sql`.
 4. Click **Import** at the bottom.
 
-The file creates `granted_db` by itself, creates all 9 tables, and adds two starter rows: the admin user and one scholarship type called *Academic Scholarship*.
+The file creates `granted_db` by itself and creates all 10 tables.
 
 ### Step 4 — Check the tables
-In phpMyAdmin's left panel, click `granted_db`. You should see exactly these 9 tables:
+In phpMyAdmin's left panel, click `granted_db`. You should see exactly these 10 tables:
 
-`documents`, `evaluations`, `grades`, `notifications`, `renewal_decisions`, `rules`, `scholars`, `scholarship_types`, `users`
+`documents`, `evaluations`, `grades`, `login_attempts`, `notifications`, `renewal_decisions`, `rules`, `scholars`, `scholarship_types`, `users`
 
 If you see fewer, stop and read [Section 9](#9-troubleshooting).
 
-### Step 5 — Give the admin a real password
-The admin row from the import has a placeholder instead of a password hash, so nobody can log in yet.
+### Step 5 — Create the initial admin account
+The schema creates tables only. Create the initial admin account using the hash generated below.
 
 **5a. Make a hash.** Open **Command Prompt** (press the Windows key, type `cmd`, Enter) and run:
 
@@ -58,15 +58,14 @@ C:\xampp\php\php.exe -r "echo password_hash('admin123', PASSWORD_DEFAULT);"
 
 It prints one long line starting with `$2y$10$` (60 characters). Copy the whole line.
 
-**5b. Save it.** In phpMyAdmin click `granted_db` → **SQL** tab, paste this with your hash in place of the placeholder, then click **Go**:
+**5b. Create the account.** In phpMyAdmin click `granted_db` → **SQL** tab, paste this with your hash in place of the placeholder, then click **Go**:
 
 ```sql
-UPDATE users
-SET password_hash = 'PASTE_YOUR_HASH_HERE'
-WHERE email = 'admin@granted.local';
+INSERT INTO users (email, password_hash, role)
+VALUES ('admin@granted.local', 'PASTE_YOUR_HASH_HERE', 'admin');
 ```
 
-> The app has no "change password" page yet. To change any password later, repeat 5a with the new password and run the `UPDATE` above.
+> The app has no "change password" page yet. To change any password later, repeat 5a and update the account's `password_hash`.
 
 ### Step 6 — Check the database connection settings
 Open `GRANTED\config\database.php`. XAMPP's defaults already match:
@@ -94,7 +93,7 @@ Go to **http://localhost/GRANTED/auth/login.php**.
 You should land on the **Admin Dashboard**. If you do, the database is working.
 
 ### Step 9 — Add the scholarship types your team needs
-The import only creates *Academic Scholarship*. The feature list also calls for **CHED** and **DOST**. Log in as admin → **Scholarship Types** and add them. (Add them in the app, not in phpMyAdmin.)
+Log in as admin → **Scholarship Types** and add the types your team needs, such as **Academic Scholarship**, **CHED**, and **DOST**. (Add them in the app, not in phpMyAdmin.)
 
 ---
 
@@ -164,7 +163,7 @@ scholarship_types ──< rules
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | INT PK | |
-| `name` | VARCHAR(100) | e.g. CHED, DOST, Academic Scholarship |
+| `name` | VARCHAR(100), unique | e.g. CHED, DOST, Academic Scholarship |
 | `description` | TEXT, NULL | |
 | `created_at` | TIMESTAMP | |
 
@@ -175,12 +174,12 @@ One row is one requirement for one scholarship type in one term.
 |--------|------|-------|
 | `id` | INT PK | |
 | `scholarship_type_id` | INT FK | Which scholarship this rule belongs to. |
-| `rule_type` | ENUM('GPA','UNIT_LOAD','DOCUMENT','DEADLINE') | What is being checked. `DEADLINE` currently always evaluates to PENDING. Now that `due_date` exists it is probably redundant; decide in Phase 4. |
+| `rule_type` | ENUM('GPA','UNIT_LOAD','DOCUMENT','DEADLINE') | What is being checked. `DEADLINE` currently always evaluates to PENDING; deadlines are handled through `due_date` on DOCUMENT rules. Remove the unused enum value only after checking existing data. |
 | `operator` | ENUM('>=','<=','>','<','==') | How to compare. |
 | `threshold_value` | VARCHAR(50) | The number to compare against (e.g. `2.00`, `18`). **For a DOCUMENT rule it holds the exact document name** (e.g. `Certificate of Registration`). |
 | `school_year` | VARCHAR(9) | Format `2026-2027`. |
 | `semester` | ENUM('1st','2nd','Summer') | Exact spelling. |
-| `due_date` | DATE, NULL | Submission deadline for this requirement. Empty = no deadline. Set on the admin Rules page. Used by the deadline-reminder script; it does not change PASS/FAIL yet (task 4.2). |
+| `due_date` | DATE, NULL | Submission deadline for a DOCUMENT rule. Empty = no deadline. If no document is uploaded by the date, that rule fails; the reminder script also sends an advance reminder. |
 | `is_active` | TINYINT(1), default 1 | 1 = in use, 0 = deactivated. Rules are deactivated, never deleted. |
 | `created_at` | TIMESTAMP | |
 
@@ -188,7 +187,7 @@ One row is one requirement for one scholarship type in one term.
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | INT PK | |
-| `user_id` | INT FK | The scholar's login in `users`. One login per scholar (kept by the app, not enforced by the database). |
+| `user_id` | INT FK, unique | The scholar's login in `users`. The database enforces one scholar profile per login. |
 | `full_name` | VARCHAR(150) | |
 | `program` | VARCHAR(100), NULL | e.g. BS Computer Science |
 | `year_level` | TINYINT, NULL | 1–6 |
@@ -208,6 +207,8 @@ One row is one requirement for one scholarship type in one term.
 | `units` | TINYINT | |
 | `school_year` | VARCHAR(9) | |
 | `semester` | ENUM('1st','2nd','Summer') | |
+
+`(scholar_id, subject, school_year, semester)` is unique, so a scholar cannot receive two grade rows for the same subject in one term.
 
 ### `documents`
 | Column | Type | Notes |
@@ -241,7 +242,7 @@ One row is one requirement for one scholarship type in one term.
 | `id` | INT PK | |
 | `scholar_id` | INT FK | Who the message is for. |
 | `type` | ENUM('STATUS_CHANGE','DEADLINE_APPROACHING') | |
-| `channel` | ENUM('EMAIL','SMS'), default EMAIL | SMS is reserved for urgent cases, still pending the fee question. |
+| `channel` | ENUM('EMAIL'), default EMAIL | Only email notifications are currently supported. SMS is future scope. |
 | `subject` | VARCHAR(200) | |
 | `message` | TEXT | |
 | `old_status` | ENUM('PASS','FAIL','PENDING'), NULL | Filled for STATUS_CHANGE. |
@@ -384,6 +385,12 @@ Then repeat Steps 3–5 of [Section 2](#2-set-up-from-scratch-do-these-in-order)
 **You already have the Phase 1–3 database (7 tables) and just need the new parts**
 Don't re-import the full schema. In phpMyAdmin click `granted_db` → **Import** → choose `database/phase4-5_migration.sql`. It adds `notifications`, `renewal_decisions` and the `rules.due_date` column, keeps all your data, and is safe to run twice.
 
+**Add the Phase 6 uniqueness constraints to an existing database**
+Import `database/phase6_unique_constraints_preflight.sql` first. Each query must return no rows; resolve any duplicates manually. Then import `database/phase6_unique_constraints_migration.sql`. Fresh databases already include these constraints in `granted_schema.sql`.
+
+**Make notifications email-only on an existing database**
+If the Phase 4-5 migration was already applied, import `database/phase7_email_only_notifications.sql`. It changes any SMS channel labels to EMAIL, then restricts the channel to EMAIL. Fresh databases and databases that have not yet run the Phase 4-5 migration already use the email-only channel definition.
+
 **Enable duplicate-upload protection on an existing database**
 Import `database/document_submission_dedup_migration.sql` once in phpMyAdmin after the other migrations. It adds a unique submission token to new document uploads and preserves existing documents. Fresh databases already have this column and do not need this migration.
 
@@ -411,5 +418,5 @@ Import `database/document_submission_dedup_migration.sql` once in phpMyAdmin aft
 ## 10. Working as a team
 
 - **Each person has their own database.** Data isn't shared automatically. To give a teammate your data: phpMyAdmin → `granted_db` → **Export** → *Quick* → *SQL*, send them the file, and they import it into an empty `granted_db`. Copy `uploads\documents\` too.
-- **Never change a table's structure only in phpMyAdmin.** Put every change in a new numbered `.sql` file inside `database/` (for example `phase6_….sql`), tell the team to run it once, **and** update `granted_schema.sql` so a fresh install matches. The rule: *fresh schema* and *old schema + all migrations* must end up identical.
+- **Never change a table's structure only in phpMyAdmin.** Put every change in a new numbered `.sql` file inside `database/`, tell the team to run it once, **and** update `granted_schema.sql` so a fresh install matches. The rule: *fresh schema* and *old schema + all migrations* must end up identical.
 - **Keep the project and the `.sql` files in Git (GitHub) or a shared drive**, not only on one laptop or one account.

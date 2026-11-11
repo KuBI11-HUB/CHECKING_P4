@@ -132,8 +132,9 @@ require_once __DIR__ . '/../includes/header.php';
 
         <label for="is_active" style="display:flex; align-items:center; margin-top:1.25rem;">
             <input type="checkbox" id="is_active" name="is_active" value="1" style="width:auto; margin-right:0.5rem;" <?php echo $form['is_active'] === '1' ? 'checked' : ''; ?>>
-            Active (untick to deactivate; tick to reactivate)
+            Active
         </label>
+        <p><small>When active, this rule is used in evaluation for its term.</small></p>
 
         <button type="submit">Save rule</button>
         <a class="btn btn--secondary" href="/GRANTED/admin/rules.php">Cancel</a>

@@ -130,9 +130,16 @@ require_once __DIR__ . '/../includes/header.php';
         <p>This type cannot be deleted while <?php echo $scholarCount; ?> scholar(s) use it. Move them to another type first (Edit profile on the scholar's page).</p>
     <?php else: ?>
         <p>No scholars use this type. Deleting it cannot be undone.</p>
-        <form method="POST" action="<?php echo $editUrl; ?>">
+        <form method="POST" action="<?php echo $editUrl; ?>" data-confirmation>
             <?php echo csrfField(); ?>
-            <button type="submit" name="delete" value="1" class="btn btn--danger" onclick="return confirm('Delete this scholarship type?');">Delete type</button>
+            <button type="button" class="btn btn--danger" data-confirmation-trigger>Delete type</button>
+            <div class="form-info action-confirmation" data-confirmation-panel hidden>
+                <p>Delete this scholarship type? This cannot be undone.</p>
+                <div class="action-confirmation__actions">
+                    <button class="btn btn--secondary" type="button" data-confirmation-cancel>Cancel</button>
+                    <button type="submit" name="delete" value="1" class="btn btn--danger">Delete type</button>
+                </div>
+            </div>
         </form>
     <?php endif; ?>
 </div>

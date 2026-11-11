@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($pageTitle) ? sanitize($pageTitle) . ' — GRANTED' : 'GRANTED'; ?></title>
     <link rel="icon" type="image/png" href="/GRANTED/assets/icons/LOGO.png">
-    <link rel="stylesheet" href="/GRANTED/assets/css/style.css">
+    <link rel="stylesheet" href="/GRANTED/assets/css/style.css?v=<?php echo (int) filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
     <script>document.documentElement.className += ' js';</script>
+    <?php include __DIR__ . '/theme_head.php'; ?>
 </head>
 <body>
 <?php if (isLoggedIn()): ?>
@@ -30,20 +31,21 @@ $shellNav = isAdminShell()
         ['Upload Documents', 'file-text', '/GRANTED/scholar/upload_document.php', ['upload_document.php']],
         ['Notifications', 'bell', '/GRANTED/scholar/notifications.php', ['notifications.php']],
     ];
+$dashboardHref = isAdminShell() ? '/GRANTED/admin/dashboard.php' : '/GRANTED/scholar/dashboard.php';
 $activePage = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
 ?>
 <div class="portal-shell <?php echo isAdminShell() ? 'portal-shell--admin' : 'portal-shell--scholar'; ?>">
     <header class="portal-topbar">
         <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
-        <span class="portal-topbar__brand"><img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">GRANTED</span>
+        <a class="portal-topbar__brand" href="<?php echo $dashboardHref; ?>"><img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">GRANTED</a>
         <?php include __DIR__ . '/account_menu.php'; ?>
     </header>
     <aside class="portal-sidebar" id="site-nav">
         <div class="portal-sidebar__brand">
-            <div class="portal-sidebar__identity">
+            <a class="portal-sidebar__identity" href="<?php echo $dashboardHref; ?>">
                 <img class="portal-brand__logo" src="/GRANTED/assets/icons/LOGO.png" alt="">
                 <p class="portal-sidebar__name">GRANTED</p>
-            </div>
+            </a>
             <p class="portal-sidebar__org">University of Luzon</p>
         </div>
         <nav class="portal-sidebar__nav" aria-label="Main">

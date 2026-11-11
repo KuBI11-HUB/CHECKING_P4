@@ -75,6 +75,25 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 </div>
 
+<div class="card" id="appearance">
+    <h2>Appearance</h2>
+    <p>Choose how GRANTED looks on this device.</p>
+    <div class="theme-choice" role="radiogroup" aria-label="Theme preference">
+        <label class="theme-choice__option">
+            <input type="radio" name="granted_theme_pref" value="system">
+            <span>System</span>
+        </label>
+        <label class="theme-choice__option">
+            <input type="radio" name="granted_theme_pref" value="light">
+            <span>Light</span>
+        </label>
+        <label class="theme-choice__option">
+            <input type="radio" name="granted_theme_pref" value="dark">
+            <span>Dark</span>
+        </label>
+    </div>
+</div>
+
 <div class="card" id="password">
     <h2>Password</h2>
     <?php echo $notice; ?>
@@ -100,5 +119,21 @@ require_once __DIR__ . '/includes/header.php';
     <p><a href="<?php echo sanitize($privacy['href']); ?>"<?php echo $privacy['external'] ? ' target="_blank" rel="noopener"' : ''; ?>>Privacy policy</a></p>
 </div>
 <?php endif; ?>
+
+<script>
+(function () {
+    var radios = document.querySelectorAll('input[name="granted_theme_pref"]');
+    var current = window.grantedTheme ? window.grantedTheme.get() : 'system';
+
+    radios.forEach(function (radio) {
+        radio.checked = radio.value === current;
+        radio.addEventListener('change', function () {
+            if (window.grantedTheme) {
+                window.grantedTheme.set(this.value);
+            }
+        });
+    });
+})();
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

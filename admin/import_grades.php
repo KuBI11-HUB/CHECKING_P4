@@ -160,17 +160,18 @@ $pageTitle = 'Import Grades';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<h1>Import grades from CSV</h1>
 <p style="margin-bottom:1rem;"><a class="back-link" href="/GRANTED/admin/enter_grades.php">&larr; Enter a single grade instead</a></p>
+<h1>Import grades from CSV</h1>
 
-<div class="card">
+<div class="card card--prose">
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
 
     <p>Required columns: <strong>email</strong>, <strong>subject</strong>, <strong>grade</strong>, and <strong>units</strong>.</p>
     <p>Optional columns: <strong>school_year</strong> and <strong>semester</strong>. Blank values use the current term (<?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?>).</p>
     <p>Use the first row for column names. Grades must be 1.00–5.00; units must be 1–10. Existing grades are skipped. Maximum: <?php echo GRADE_IMPORT_MAX_ROWS; ?> rows, 1 MB, UTF-8.</p>
-<pre style="margin-top:0.75rem; font-size:0.85rem;">email,subject,grade,units,school_year,semester
+<pre class="csv-sample">email,subject,grade,units,school_year,semester
 maria@example.com,CS 101,1.75,3,<?php echo h(CURRENT_SCHOOL_YEAR); ?>,<?php echo h(CURRENT_SEMESTER); ?></pre>
+<p><a class="btn btn--secondary" href="/GRANTED/admin/download_grades_template.php" style="margin-top:0;">Download CSV template</a></p>
 
     <form method="POST" action="" enctype="multipart/form-data" id="import-form" style="max-width:34rem;">
         <?php echo csrfField(); ?>

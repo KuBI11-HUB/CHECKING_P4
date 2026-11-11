@@ -185,18 +185,23 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="rule-list__details">
                     <strong><?php echo sanitize($r['type_name']); ?></strong>
                     <span class="rule-list__summary">
-                        <?php echo sanitize($r['rule_type']); ?> <?php echo sanitize($r['operator']); ?> <?php echo sanitize($r['threshold_value']); ?>
-                        (<?php echo sanitize($r['school_year']); ?>, <?php echo sanitize($r['semester']); ?>)
-                        <?php if (!empty($r['due_date'])): ?>— due <?php echo sanitize($r['due_date']); ?><?php endif; ?>
+                        <?php echo h(describeRule($r)); ?> — <?php echo h($r['school_year'] . ', ' . $r['semester']); ?> semester
                         <?php if (!$r['is_active']): ?><em>(inactive)</em><?php endif; ?>
                     </span>
                 </div>
                 <div class="rule-list__actions">
-                    <a class="rule-list__action rule-list__action--edit" href="/GRANTED/admin/edit_rule.php?id=<?php echo (int)$r['id']; ?>">Edit</a>
+                    <a class="rule-list__action rule-list__action--edit" href="/GRANTED/admin/edit_rule.php?id=<?php echo (int)$r['id']; ?>" data-confirmation-hide>Edit</a>
                     <?php if ($r['is_active']): ?>
-                        <form method="POST" action="">
+                        <form method="POST" action="" data-confirmation>
                             <?php echo csrfField(); ?>
-                            <button class="rule-list__action rule-list__action--deactivate" type="submit" name="deactivate" value="<?php echo (int)$r['id']; ?>" onclick="return confirm('Deactivate this rule?');">Deactivate</button>
+                            <button class="rule-list__action rule-list__action--deactivate" type="button" data-confirmation-trigger>Deactivate</button>
+                            <div class="form-info action-confirmation" data-confirmation-panel hidden>
+                                <p>Deactivate this rule? It will stop applying on the next evaluation.</p>
+                                <div class="action-confirmation__actions">
+                                    <button class="btn btn--secondary" type="button" data-confirmation-cancel>Cancel</button>
+                                    <button class="rule-list__action rule-list__action--deactivate" type="submit" name="deactivate" value="<?php echo (int)$r['id']; ?>">Confirm</button>
+                                </div>
+                            </div>
                         </form>
                     <?php endif; ?>
                 </div>

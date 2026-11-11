@@ -41,12 +41,14 @@ function renderErrorPage(int $status, ?string $customTitle = null, ?string $cust
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title><?php echo h($title); ?> — GRANTED</title>
-    <link rel="stylesheet" href="/GRANTED/assets/css/style.css">
+    <link rel="stylesheet" href="/GRANTED/assets/css/style.css?v=<?php echo (int) filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
+    <?php include __DIR__ . '/theme_head.php'; ?>
 </head>
 <body>
 <main class="error-page">
     <div class="error-card">
         <p class="error-card__brand">GRANTED</p>
+        <?php if ($status === 403): ?><p class="error-card__warning"><?php echo uiIcon('circle-alert'); ?></p><?php endif; ?>
         <h1><?php echo h($title); ?></h1>
         <p class="error-card__message"><?php echo h($message); ?></p>
         <div class="error-card__actions">

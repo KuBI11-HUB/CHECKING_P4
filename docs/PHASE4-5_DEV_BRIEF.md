@@ -54,7 +54,7 @@ For the two developers. Phases 1–3 are done and working. This brief says what 
 | D2 | One rule failed, another still pending | Overall stays **PENDING** (current behavior). With D1, a missed deadline becomes a FAIL on its own. |
 | D3 | Can scholars see the renewal decision? | **No.** Admin-only. FEATURES.pdf doesn't list it for scholars. |
 | D4 | What does "GPA" and "unit load" cover? | **Current term only** (rules are per school year/semester). Today it averages every grade ever entered. |
-| D5 | SMS | **Not built.** The `channel` column exists for later. |
+| D5 | SMS | **Not built.** Notifications are email-only; SMS is future scope. |
 
 ---
 

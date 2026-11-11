@@ -17,19 +17,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare(
             'INSERT INTO grades (scholar_id, subject, grade, units, school_year, semester) VALUES (?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([$v['scholar_id'], $v['subject'], $v['grade'], $v['units'], $v['school_year'], $v['semester']]);
+        try {
+            $stmt->execute([$v['scholar_id'], $v['subject'], $v['grade'], $v['units'], $v['school_year'], $v['semester']]);
+        } catch (PDOException $e) {
+            if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+                $message = 'A grade for "' . $v['subject']
+                    . '" is already recorded for this scholar in '
+                    . $v['school_year'] . ' ' . $v['semester'] . '. Duplicate grades are not allowed.';
+            } else {
+                throw $e;
+            }
+        }
 
-        // evaluateScholar() recalculates GPA/units for the current term, then re-runs the rules.
-        $status = evaluateScholar($pdo, $v['scholar_id']);
-
-        $success = 'Grade recorded. Recalculated status: ' . sanitize($status ?? 'PENDING') . '.';
+        if ($message === '') {
+            // evaluateScholar() recalculates GPA/units for the current term, then re-runs the rules.
+            $status = evaluateScholar($pdo, $v['scholar_id']);
+            $success = 'Grade recorded. Recalculated status: ' . sanitize($status ?? 'PENDING') . '.';
+        }
     }
 }
-$scholars = $pdo->query(
-    'SELECT s.id, s.full_name, st.name AS type_name FROM scholars s
-     JOIN scholarship_types st ON st.id = s.scholarship_type_id
-     ORDER BY s.full_name'
-)->fetchAll();
+$search = $_GET['q'] ?? '';
+$search = is_string($search) ? trim($search) : '';
+$search = function_exists('mb_substr') ? mb_substr($search, 0, 100) : substr($search, 0, 100);
+
+$sql = 'SELECT s.id, s.full_name, st.name AS type_name FROM scholars s
+        JOIN scholarship_types st ON st.id = s.scholarship_type_id';
+if ($search !== '') {
+    $like = '%' . addcslashes($search, '\\%_') . '%';
+    $sql .= ' JOIN users u ON u.id = s.user_id WHERE s.full_name LIKE :name OR u.email LIKE :email';
+    $stmt = $pdo->prepare($sql . ' ORDER BY s.full_name');
+    $stmt->execute([':name' => $like, ':email' => $like]);
+    $scholars = $stmt->fetchAll();
+} else {
+    $scholars = $pdo->query($sql . ' ORDER BY s.full_name')->fetchAll();
+}
 
 $pageTitle = 'Enter Grades';
 
@@ -38,11 +59,21 @@ require_once __DIR__ . '/../includes/header.php';
 
 <h1>Enter grades</h1>
 <p style="margin-bottom:1rem;"><a class="btn btn--secondary" href="/GRANTED/admin/import_grades.php" style="margin-top:0;"><span class="icon-label"><?php echo uiIcon('upload'); ?>Import many grades from a CSV file</span></a></p>
+<form method="GET" action="/GRANTED/admin/enter_grades.php" class="search-form search-form--grade-search" role="search" style="margin-bottom:1rem;">
+    <label for="q" class="visually-hidden">Search scholar name or email</label>
+    <input type="search" id="q" name="q" value="<?php echo sanitize($search); ?>" maxlength="100" placeholder="Search name or email">
+    <button type="submit" class="btn btn--secondary"><span class="icon-label"><?php echo uiIcon('search'); ?>Search</span></button>
+    <?php if ($search !== '' && !empty($scholars)): ?>
+        <a class="btn btn--secondary" href="/GRANTED/admin/enter_grades.php">Clear</a>
+    <?php endif; ?>
+</form>
 <div class="card">
     <?php if ($message): ?><p class="form-error"><?php echo sanitize($message); ?></p><?php endif; ?>
     <?php if ($success): ?><p class="form-success"><?php echo sanitize($success); ?></p><?php endif; ?>
 
-    <?php if (empty($scholars)): ?>
+    <?php if ($search !== '' && empty($scholars)): ?>
+        <p>No scholars match this search.</p>
+    <?php elseif (empty($scholars)): ?>
         <p>You need to <a href="/GRANTED/admin/enroll_scholar.php">enroll a scholar</a> first.</p>
     <?php else: ?>
     <form method="POST" action="">

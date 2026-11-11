@@ -13,9 +13,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($name === '') {
         $message = 'Name is required.';
     } else {
-        $stmt = $pdo->prepare('INSERT INTO scholarship_types (name, description) VALUES (?, ?)');
-        $stmt->execute([$name, $description]);
-        redirectTo('/GRANTED/admin/scholarship_types.php');
+        try {
+            $stmt = $pdo->prepare('INSERT INTO scholarship_types (name, description) VALUES (?, ?)');
+            $stmt->execute([$name, $description]);
+            redirectTo('/GRANTED/admin/scholarship_types.php');
+        } catch (PDOException $e) {
+            if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+                $message = 'Another scholarship type already uses that name.';
+            } else {
+                throw $e;
+            }
+        }
     }
 }
 

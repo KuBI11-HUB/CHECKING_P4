@@ -39,6 +39,50 @@ document.addEventListener('submit', function (event) {
         }, 0);
     }
 });
+
+document.querySelectorAll('form[data-confirmation]').forEach(function (form) {
+    var trigger = form.querySelector('[data-confirmation-trigger]');
+    var panel = form.querySelector('[data-confirmation-panel]');
+    var cancel = form.querySelector('[data-confirmation-cancel]');
+    var hideWhileConfirming = form.parentElement.querySelectorAll('[data-confirmation-hide]');
+
+    trigger.addEventListener('click', function (event) {
+        event.preventDefault();
+        trigger.hidden = true;
+        hideWhileConfirming.forEach(function (element) {
+            element.hidden = true;
+        });
+        panel.hidden = false;
+        cancel.focus();
+    });
+    cancel.addEventListener('click', function () {
+        panel.hidden = true;
+        trigger.hidden = false;
+        hideWhileConfirming.forEach(function (element) {
+            element.hidden = false;
+        });
+        trigger.focus();
+    });
+});
+
+document.querySelectorAll('[data-grade-confirmation-trigger]').forEach(function (trigger) {
+    var confirmationRow = document.getElementById(trigger.getAttribute('aria-controls'));
+    if (!confirmationRow) {
+        return;
+    }
+    var cancel = confirmationRow.querySelector('[data-grade-confirmation-cancel]');
+
+    trigger.addEventListener('click', function () {
+        confirmationRow.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        cancel.focus();
+    });
+    cancel.addEventListener('click', function () {
+        confirmationRow.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus();
+    });
+});
 </script>
 </body>
 </html>
