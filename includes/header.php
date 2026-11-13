@@ -94,4 +94,10 @@ $activePage = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
 </script>
 <?php endif; ?>
 <?php if (isAdminShell() || isScholarShell()): ?><div class="portal-content"><?php endif; ?>
+<?php if (defined('DEMO_MODE') && DEMO_MODE && isLoggedIn()): ?>
+<div class="demo-banner" role="status">Demo data — synthetic accounts and documents only. Not official University records.</div>
+<?php endif; ?>
 <main class="site-main">
+<?php if (isLoggedIn() && (isAdminShell() || isScholarShell())): ?>
+<p class="term-chip" title="Configured evaluation term"><span class="term-chip__label">Term</span> <?php echo h(currentTermLabel()); ?></p>
+<?php endif; ?>

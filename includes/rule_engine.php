@@ -130,7 +130,7 @@ function evaluateRule(PDO $pdo, array $rule, array $scholar): string
     }
 }
 
-function evaluateAssignment(PDO $pdo, int $assignmentId): ?string
+function evaluateAssignment(PDO $pdo, int $assignmentId, bool $notify = true): ?string
 {
     $stmt = $pdo->prepare(
         'SELECT a.id AS assignment_id, a.scholar_id, a.scholarship_type_id, a.status,
@@ -192,7 +192,7 @@ function evaluateAssignment(PDO $pdo, int $assignmentId): ?string
             'UPDATE scholarship_assignments SET status = ? WHERE id = ? AND status = ?'
         );
         $stmt->execute([$newStatus, $assignmentId, $oldStatus]);
-        if ($stmt->rowCount() > 0) {
+        if ($notify && $stmt->rowCount() > 0) {
             notifyAssignmentStatusChange($pdo, $assignment, $oldStatus, $newStatus);
         }
     }
@@ -205,7 +205,7 @@ function evaluateAssignment(PDO $pdo, int $assignmentId): ?string
  * current-term GWA/unit caches. Returns the worst active assignment status for
  * callers that still display a scholar-level summary.
  */
-function evaluateScholar(PDO $pdo, int $scholarId): ?string
+function evaluateScholar(PDO $pdo, int $scholarId, bool $notify = true): ?string
 {
     $stmt = $pdo->prepare(
         'SELECT id FROM scholarship_assignments
@@ -222,7 +222,7 @@ function evaluateScholar(PDO $pdo, int $scholarId): ?string
     refreshScholarMetrics($pdo, $scholarId);
     $statuses = [];
     foreach ($assignmentIds as $assignmentId) {
-        $status = evaluateAssignment($pdo, $assignmentId);
+        $status = evaluateAssignment($pdo, $assignmentId, $notify);
         if ($status !== null) {
             $statuses[] = $status;
         }
@@ -236,7 +236,7 @@ function evaluateScholar(PDO $pdo, int $scholarId): ?string
     return $statuses ? 'PASS' : null;
 }
 
-function reevaluateScholarshipType(PDO $pdo, int $scholarshipTypeId): int
+function reevaluateScholarshipType(PDO $pdo, int $scholarshipTypeId, bool $notify = false): int
 {
     $stmt = $pdo->prepare(
         'SELECT id FROM scholarship_assignments
@@ -252,7 +252,7 @@ function reevaluateScholarshipType(PDO $pdo, int $scholarshipTypeId): int
         if ($scholarId > 0) {
             refreshScholarMetrics($pdo, $scholarId);
         }
-        evaluateAssignment($pdo, $assignmentId);
+        evaluateAssignment($pdo, $assignmentId, $notify);
     }
     return count($assignmentIds);
 }

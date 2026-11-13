@@ -183,3 +183,26 @@ table.data-table td.empty-state, .rule-list li.empty-state { color: var(--ul-mut
 
 /* Office renewal decisions use a neutral outline; semantic statuses keep their own colors. */
 .decision-chip { display: inline-block; padding: 0.125rem 0.5rem; border: 1px solid var(--ul-text); border-radius: 6px; background: var(--ul-surface); color: var(--ul-text); font-size: 0.8rem; font-weight: 500; }
+
+/* Term + demo chrome */
+.demo-banner {
+    margin: 0; padding: 0.5rem 1rem; border-bottom: 1px solid var(--ul-border);
+    background: #FBF1E1; color: #8A5E0B; font-size: 0.9rem; text-align: center;
+}
+.term-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    margin: 0 0 1rem; padding: 0.25rem 0.65rem; border: 1px solid var(--ul-border);
+    border-radius: 999px; background: var(--ul-surface); color: var(--ul-muted); font-size: 0.85rem;
+}
+.term-chip__label {
+    color: var(--ul-maroon); font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+}
+.status-next, .status-why {
+    display: block; margin-top: 0.25rem; color: var(--ul-muted); font-size: 0.85rem; font-weight: 400;
+}
+.status-why { font-style: italic; }
+.file-missing { display: inline-flex; align-items: center; gap: 0.35rem; color: #B3492B; font-size: 0.9rem; }
+.file-missing .ui-icon { width: 1rem; height: 1rem; }
+.term-rules-warning { margin: 0 0 1rem; }
+.recheck-form { margin-bottom: 1rem; }

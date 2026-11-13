@@ -38,3 +38,6 @@ defined('LOGIN_MAX_FAILURES')       || define('LOGIN_MAX_FAILURES', 5);    // pe
 defined('LOGIN_WINDOW_MINUTES')     || define('LOGIN_WINDOW_MINUTES', 15);
 
 defined('GRANTED_PRIVACY_URL') || define('GRANTED_PRIVACY_URL', '');
+
+// ---- Demo banner (local presentations only) -------------------------------------
+defined('DEMO_MODE') || define('DEMO_MODE', false);

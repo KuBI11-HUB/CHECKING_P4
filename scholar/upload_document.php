@@ -94,7 +94,7 @@ if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($message === '') {
                     evaluateScholar($pdo, $scholar['id']);
-                    $_SESSION['upload_success'] = $selectedItem['document_type'] . ' uploaded and is now pending review.';
+                    $_SESSION['upload_success'] = $selectedItem['document_type'] . ' received, pending office review.';
                     redirectTo('/GRANTED/scholar/upload_document.php');
                 }
             }

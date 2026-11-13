@@ -1,4 +1,4 @@
-# GRANTED web root (Phase 7). Needs AllowOverride All (the XAMPP default); verify with the checks in docs/DEPLOY_CHECKLIST.md.
+# GRANTED web root. Needs AllowOverride All; verify with docs/DEPLOY_CHECKLIST.md before deployment.
 Options -Indexes
 
 ErrorDocument 403 /GRANTED/errors/403.php

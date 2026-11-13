@@ -11,6 +11,12 @@ The current scholarship-type seeds are CHED, DOST, Mayor's Scholar, and TES. The
 
 The older `database/granted_schema.sql` describes the previous GPA/grades design and is not the schema for the current application.
 
+## Local demo setup
+
+Follow the root `README.md` for the complete XAMPP setup and demo walkthrough. `database/demo_seed.sql` is separate from the schema and is only for a fresh, disposable local database. It creates fixed demo credentials and fictional academic data; never import it into a shared or production database. Its sample Certificate of Grades PDF must first be copied from `assets/` into `uploads/documents/`.
+
+The demo seed includes a recurring Certificate of Registration as an optional catalogue example only. Confirm approved document names with the Scholarship Office before using them in a real deployment.
+
 ## The 13 tables
 
 | Table | Purpose |

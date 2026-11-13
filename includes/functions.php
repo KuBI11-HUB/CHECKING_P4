@@ -99,6 +99,13 @@ function isScholarShell(): bool
     return isLoggedIn() && currentRole() === 'scholar';
 }
 
+function currentTermLabel(): string
+{
+    $sem = CURRENT_SEMESTER;
+    $semLabel = $sem === 'Summer' ? 'Summer' : $sem . ' semester';
+    return CURRENT_SCHOOL_YEAR . ', ' . $semLabel;
+}
+
 function statusBadgeClass(?string $status): string
 {
     switch ($status) {
@@ -358,4 +365,78 @@ function flashBox(?string $message): string
     $isError = stripos($message, 'Not saved') === 0;
     return '<div class="flash ' . ($isError ? 'flash--error' : 'flash--success') . '" role="' . ($isError ? 'alert' : 'status') . '">'
         . uiIcon($isError ? 'circle-alert' : 'circle-check') . '<span>' . h($message) . '</span></div>';
+}
+
+function statusNextStep(?string $status, string $audience = 'scholar'): string
+{
+    $status = $status ?: 'PENDING';
+    if ($audience === 'admin') {
+        switch ($status) {
+            case 'PASS':
+                return 'All current-term rules are met.';
+            case 'FAIL':
+                return 'At least one current-term rule is not met.';
+            default:
+                return 'Waiting on documents, GWA, or a rule that is not decided yet.';
+        }
+    }
+
+    switch ($status) {
+        case 'PASS':
+            return 'You meet the current requirements for this scholarship.';
+        case 'FAIL':
+            return 'Something still needs attention. Check your checklist or contact the Scholarship Office.';
+        default:
+            return 'Waiting for a required document or official GWA for this term.';
+    }
+}
+
+function documentStoragePath(string $storedName): string
+{
+    return __DIR__ . '/../uploads/documents/' . basename($storedName);
+}
+
+function documentFileIsAvailable(?string $storedName): bool
+{
+    if ($storedName === null || $storedName === '') {
+        return false;
+    }
+    $path = documentStoragePath($storedName);
+    return is_file($path) && is_readable($path);
+}
+
+function summarizePendingReasons(array $ruleRows): string
+{
+    $bits = [];
+    foreach ($ruleRows as $row) {
+        if (($row['result'] ?? '') !== 'PENDING') {
+            continue;
+        }
+        switch ($row['rule_type'] ?? '') {
+            case 'GWA':
+                $bits[] = 'official GWA not yet usable';
+                break;
+            case 'UNIT_LOAD':
+                $bits[] = 'unit load not yet usable';
+                break;
+            case 'DOCUMENT':
+                $label = $row['requirement_name'] ?? $row['threshold_value'] ?? 'document';
+                $bits[] = $label . ' still outstanding';
+                break;
+            case 'DEADLINE':
+                $bits[] = 'deadline rule not evaluated yet';
+                break;
+            default:
+                $bits[] = 'a rule is still pending';
+        }
+    }
+    $bits = array_values(array_unique($bits));
+    if ($bits === []) {
+        return '';
+    }
+    if (count($bits) === 1) {
+        return 'Waiting on ' . $bits[0] . '.';
+    }
+    $last = array_pop($bits);
+    return 'Waiting on ' . implode(', ', $bits) . ' and ' . $last . '.';
 }

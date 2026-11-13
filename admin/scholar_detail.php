@@ -183,6 +183,12 @@ $active = isset($activeIds[$assignmentId]);
     <p>Calculated status:
         <span class="status-badge <?php echo statusBadgeClass($assignment['status']); ?>"><?php echo h($assignment['status']); ?></span>
     </p>
+    <p class="status-next"><?php echo h(statusNextStep($assignment['status'], 'admin')); ?></p>
+    <?php if (($assignment['status'] ?? '') === 'PENDING'):
+        $why = summarizePendingReasons($rules);
+        if ($why !== ''): ?>
+        <p class="status-why"><?php echo h($why); ?></p>
+    <?php endif; endif; ?>
     <?php if ($active): ?>
     <form method="POST" action="<?php echo h($detailUrl); ?>">
         <?php echo csrfField(); ?>

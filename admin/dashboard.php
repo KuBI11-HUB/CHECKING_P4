@@ -3,6 +3,23 @@ $requiredRole = 'admin';
 require_once __DIR__ . '/../includes/auth_check.php';
 
 $pdo = getDbConnection();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reevaluate_all_assignments'])) {
+    verifyCsrf();
+    $ids = $pdo->query(
+        'SELECT id, scholar_id FROM scholarship_assignments
+         WHERE is_active = 1 AND ended_at IS NULL ORDER BY id'
+    )->fetchAll();
+    $n = 0;
+    foreach ($ids as $row) {
+        refreshScholarMetrics($pdo, (int)$row['scholar_id']);
+        evaluateAssignment($pdo, (int)$row['id'], false);
+        $n++;
+    }
+    setFlash($n . ' assignments re-checked. No emails sent.');
+    redirectTo('/GRANTED/admin/dashboard.php');
+}
+
 $filters = normalizeResultFilters($_GET);
 $paging = normalizeResultPaging($_GET);
 $options = getResultFilterOptions($pdo);
@@ -20,6 +37,10 @@ foreach ($pdo->query('SELECT a.status, COUNT(*) AS c FROM scholarship_assignment
         $statusCounts[$row['status']] = (int)$row['c'];
     }
 }
+$_ruleStmt = $pdo->prepare('SELECT COUNT(*) FROM rules WHERE is_active = 1 AND school_year = ? AND semester = ?');
+$_ruleStmt->execute([CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER]);
+$activeRulesForTerm = (int)$_ruleStmt->fetchColumn();
+
 $exportQuery = resultsQueryString($filters);                          // the CSV export ignores paging
 $_SESSION['results_query'] = resultsQueryString($filters, $paging);   // "Back to results" on a scholar page returns to this view
 
@@ -72,6 +93,20 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="page-head__sub">Results for <strong><?php echo h(CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER); ?></strong></p>
     </div>
 </div>
+
+<?php echo flashBox(takeFlash()); ?>
+<?php if ($activeRulesForTerm === 0): ?>
+<div class="term-rules-warning form-error icon-message" role="status"><?php echo uiIcon('circle-alert'); ?>
+    <span>No rules for <?php echo h(currentTermLabel()); ?>. Statuses will stay PENDING.
+    <a href="/GRANTED/admin/rules.php">Open Rules</a>.</span>
+</div>
+<?php endif; ?>
+<form method="POST" action="/GRANTED/admin/dashboard.php" class="page-actions recheck-form">
+    <?php echo csrfField(); ?>
+    <button type="submit" name="reevaluate_all_assignments" value="1" class="btn btn--secondary">
+        <span class="icon-label"><?php echo uiIcon('list-checks'); ?>Re-check all assignments</span>
+    </button>
+</form>
 
 <div class="stat-strip" role="group" aria-label="Enrolled scholars by calculated status">
     <div class="stat"><span class="stat__label">Total scholars</span><span class="stat__value"><?php echo $totalScholars; ?></span></div>
@@ -170,7 +205,15 @@ require_once __DIR__ . '/../includes/header.php';
                 <td><?php echo h($s['type_name']); ?></td>
                 <td class="num"><?php echo $s['current_gwa'] !== null ? h((string)$s['current_gwa']) : '—'; ?></td>
                 <td class="num"><?php echo $s['current_units'] !== null ? h((string)$s['current_units']) : '—'; ?></td>
-                <td><span class="status-badge <?php echo statusBadgeClass($s['assignment_status']); ?>"><?php echo h($s['assignment_status']); ?></span></td>
+                <td>
+                    <span class="status-badge <?php echo statusBadgeClass($s['assignment_status']); ?>"><?php echo h($s['assignment_status']); ?></span>
+                    <div class="status-next"><?php echo h(statusNextStep($s['assignment_status'], 'admin')); ?></div>
+                    <?php if (($s['assignment_status'] ?? '') === 'PENDING'):
+                        $why = summarizePendingReasons(getRuleBreakdown($pdo, (int)$s['id'], (int)$s['assignment_id']));
+                        if ($why !== ''): ?>
+                        <div class="status-why"><?php echo h($why); ?></div>
+                    <?php endif; endif; ?>
+                </td>
                 <td><?php echo $s['office_decision'] ? '<span class="decision-chip">' . h(str_replace('_', ' ', $s['office_decision'])) . '</span>' : '—'; ?></td>
             </tr>
         <?php endforeach; ?>

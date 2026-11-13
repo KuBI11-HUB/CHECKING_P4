@@ -4,7 +4,7 @@
 
 For the two developers. Phases 1–3 are done and working. This brief says what to build next, where in the code, and how to know it's finished.
 
-**Read first (20 minutes):** `docs/DATABASE_GUIDE.md` (set up your local copy and learn the tables), `FEATURES.pdf` (the spec), and `README_PROTOTYPE.md` (the demo script — run it once so you know what "working" looks like).
+**Current setup and demo:** use the root `README.md` and `docs/DATABASE_GUIDE.md`. The old `FEATURES.pdf` and `README_PROTOTYPE.md` references belonged to the former prototype and are not part of this current product.
 
 **The one rule that overrides everything:** an admin never sets a scholar's PASS / FAIL / PENDING. Only the rule engine does, from data (grades, document verification, deadlines). The office's real decision is a separate record (`renewal_decisions`). Don't write to `scholars.current_status` from anywhere except `includes/rule_engine.php`.
 
@@ -40,7 +40,7 @@ For the two developers. Phases 1–3 are done and working. This brief says what 
   .DS_Store
   ```
 - **The repo folder must be named `GRANTED`** and live at `C:\xampp\htdocs\GRANTED` (links like `/GRANTED/admin/...` are hardcoded).
-- **The database is not in Git.** Every database change goes into a new numbered file in `database/` (for example `phase6_….sql`) **and** into `granted_schema.sql`, so a fresh install and "old schema + migrations" stay identical. Phase 4–5 already has its migration: `database/phase4-5_migration.sql` (run it once on your local database if it still has only 7 tables).
+- **Historical instruction; do not follow for the current product:** the former GPA/grades project used `granted_schema.sql` and numbered migrations. The current app uses `database/granted_final_schema.sql` on a fresh, empty database. Follow the root `README.md`; do not apply the historical migration files to the current demo database.
 
 **Merge order:** first branch is `phase4-term-config` (task 4.1). Merge it before anyone else starts, because both phases use `config/app.php`. After that the two of you work in parallel.
 
@@ -54,7 +54,7 @@ For the two developers. Phases 1–3 are done and working. This brief says what 
 |---|----------|------------------|
 | D1 | A required document passes its deadline | **No upload at all after `due_date` → that rule FAILS.** Uploaded on time but still *Pending Review* → stays PENDING (the delay is the office's). Rejected → FAIL (as today). A late upload is reviewed like any other. |
 | D2 | One rule failed, another still pending | Overall stays **PENDING** (current behavior). With D1, a missed deadline becomes a FAIL on its own. |
-| D3 | Can scholars see the renewal decision? | **No.** Admin-only. FEATURES.pdf doesn't list it for scholars. |
+| D3 | Can scholars see the renewal decision? | **No.** Admin-only in the former product scope. This historical brief does not define the current product specification. |
 | D4 | What does "GPA" and "unit load" cover? | **Current term only** (rules are per school year/semester). Today it averages every grade ever entered. |
 | D5 | SMS | **Not built.** Notifications are email-only; SMS is future scope. |
 
