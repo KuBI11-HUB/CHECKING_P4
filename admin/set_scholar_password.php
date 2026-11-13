@@ -16,7 +16,7 @@ $detailUrl = '/GRANTED/admin/scholar_detail.php?id=' . $scholarId;
 
 // Only an account that belongs to a scholar can be changed here; admin accounts are never touched.
 $stmt = $pdo->prepare(
-    "SELECT s.id, s.full_name, u.id AS user_id
+    "SELECT s.id, s.fname, s.mname, s.lname, s.suffix, u.id AS user_id
      FROM scholars s
      JOIN users u ON u.id = s.user_id
      WHERE s.id = ? AND u.role = 'scholar'"
@@ -49,7 +49,7 @@ if ($new === '' || $confirm === '') {
     // Who did it and for whom. The password itself is never logged.
     error_log('GRANTED: admin ' . ($_SESSION['email'] ?? 'unknown') . ' set a temporary password for scholar #' . $scholarId . '.');
 
-    setFlash('Temporary password set for ' . plainText($target['full_name'])
+    setFlash('Temporary password set for ' . formatScholarName($target, 'account')
         . '. Ask them to change it right away from the account menu (Change password).');
 }
 

@@ -1,0 +1,46 @@
+/* ---- Shared signed-in shell: sidebar + top bar. Login keeps the simple header. ---- */
+.portal-shell {
+    display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-rows: auto 1fr;
+    grid-template-areas: "side top" "side content"; min-height: 100vh;
+}
+.portal-topbar {
+    grid-area: top; position: relative; z-index: 20;
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
+    padding: var(--space-3) var(--space-7); background: var(--ul-surface); border-bottom: 1px solid var(--ul-border);
+}
+.portal-topbar__brand { display: none; align-items: center; gap: 0.5rem; margin-right: auto; font-family: var(--font-heading); font-weight: 600; font-size: 1.15rem; color: var(--color-accent); text-decoration: none; }
+.portal-topbar .account-chip { color: var(--ul-text); }
+.portal-topbar .account-chip__avatar { background: var(--color-accent); color: var(--color-on-accent); }
+.portal-topbar .nav-toggle { color: var(--ul-text); border-color: var(--ul-border-input); }
+
+.portal-sidebar {
+    grid-area: side; position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    display: flex; flex-direction: column;
+    background: var(--ul-surface); color: var(--ul-text); border-right: 1px solid var(--ul-border);
+}
+.portal-sidebar__brand { padding: 1.5rem 1.25rem 1.25rem; border-bottom: 1px solid var(--ul-border); }
+.portal-sidebar__identity { display: flex; align-items: center; gap: 0.75rem; color: inherit; text-decoration: none; }
+.portal-brand__logo { display: block; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 50%; object-fit: cover; background: var(--ul-surface); }
+.portal-sidebar__name { font-family: var(--font-heading); font-weight: 600; font-size: 1.3rem; line-height: 1.2; color: var(--ul-maroon); }
+.portal-sidebar__org { margin-top: 0.25rem; font-size: 0.8rem; color: var(--ul-muted); }
+.portal-sidebar__nav { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) 0.75rem; }
+.portal-sidebar__nav a { display: flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; padding: 0.25rem 0.75rem; border-radius: var(--radius-control); color: inherit; text-decoration: none; font-size: 0.9rem; }
+.portal-sidebar__nav a:hover { background: var(--ul-bg); }
+/* Active = filled row + gold bar + bolder label, so it does not rely on colour alone. */
+.portal-sidebar__nav a.is-active { background: var(--ul-bg); color: var(--ul-maroon); font-weight: 600; box-shadow: inset 3px 0 0 var(--color-gold); }
+.portal-sidebar a:focus-visible { outline-color: var(--ul-maroon); outline-offset: -2px; }
+.portal-topbar__brand:focus-visible { outline-color: var(--color-accent); outline-offset: 2px; }
+
+.portal-content { grid-area: content; display: flex; flex-direction: column; min-width: 0; }
+.portal-content .site-main { flex: 1 0 auto; width: 100%; max-width: 90rem; }
+
+@media (max-width: 760px) {
+    .portal-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "top" "side" "content"; }
+    .portal-topbar { padding: 0.5rem 1rem; }
+    .portal-topbar__brand { display: inline-flex; }
+    .portal-sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--ul-border); }
+    .portal-sidebar__brand { display: none; }
+    .js .portal-sidebar { display: none; }
+    .js .portal-sidebar.is-open { display: flex; }
+    .portal-content .site-main { padding: 1.5rem 1rem; }
+}

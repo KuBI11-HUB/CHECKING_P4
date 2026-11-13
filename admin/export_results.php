@@ -23,20 +23,20 @@ $out = fopen('php://output', 'w');
 fwrite($out, "\xEF\xBB\xBF");   // UTF-8 BOM so Excel shows accents correctly
 
 fputcsv($out, ['Name', 'Email', 'Program', 'Year level', 'Scholarship type', 'School year', 'Semester',
-    'GPA', 'Units', 'Calculated status', 'Office decision', 'Decision remarks'], CSV_SEPARATOR, '"', '\\');
+    'GWA', 'Units', 'Assignment status', 'Office decision', 'Decision remarks'], CSV_SEPARATOR, '"', '\\');
 
 foreach ($results as $s) {
     fputcsv($out, [
-        csvText($s['full_name']),
+        csvText(formatScholarName($s)),
         csvText($s['email']),
         csvText($s['program']),
         $s['year_level'],
         csvText($s['type_name']),
         CURRENT_SCHOOL_YEAR,
         CURRENT_SEMESTER,
-        $s['current_gpa'],
+        $s['current_gwa'],
         $s['current_units'],
-        $s['current_status'],
+        $s['assignment_status'],
         $s['office_decision'],
         csvText($s['decision_remarks']),
     ], CSV_SEPARATOR, '"', '\\');

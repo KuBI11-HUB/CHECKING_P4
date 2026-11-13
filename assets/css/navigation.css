@@ -1,0 +1,59 @@
+/* Header layout: brand | nav links ........ [Menu] [account chip] */
+.site-header__nav { margin-left: auto; }
+.site-header__actions { display: flex; align-items: center; gap: 0.75rem; }
+
+/* Account chip + menu (the same for admin and scholar) */
+.account-menu { position: relative; }
+.account-chip {
+    display: flex; align-items: center; gap: 0.5rem; list-style: none; cursor: pointer;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem; border: 1px solid transparent; border-radius: var(--radius-control);
+    color: var(--ul-text);
+}
+.account-chip::-webkit-details-marker { display: none; }
+.account-chip:hover, .account-menu[open] > .account-chip { background: var(--ul-bg); border-color: var(--ul-border-input); }
+.account-chip__avatar { display: flex; align-items: center; justify-content: center; flex: none; width: 2rem; height: 2rem; border-radius: 50%; background: var(--color-on-accent); color: var(--ul-maroon); font-size: 0.8rem; font-weight: 600; }
+.account-chip__name { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; font-weight: 500; }
+.account-chip__chevron { width: 0.4rem; height: 0.4rem; margin: -0.15rem 0.1rem 0 0; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.account-menu[open] .account-chip__chevron { margin-top: 0.15rem; transform: rotate(-135deg); }
+
+.account-menu__panel {
+    position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 10;
+    width: 18rem; max-width: calc(100vw - 2rem);
+    background: var(--ul-surface); color: var(--ul-text);
+    border: 1px solid var(--ul-border); border-radius: var(--radius-panel); box-shadow: 0 4px 16px rgba(23, 23, 23, 0.08);
+    padding: 0.25rem 0;
+}
+.account-menu__who { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; }
+.account-menu__avatar { display: flex; align-items: center; justify-content: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--ul-maroon); color: var(--color-on-accent); font-weight: 600; }
+.account-menu__id { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.account-menu__id span { font-size: 0.85rem; color: var(--ul-muted); }
+.account-menu__role { font-weight: 600; }
+.account-menu__sep { height: 1px; margin: 0.25rem 0; background: var(--ul-border); }
+.account-menu__panel a { display: block; padding: 0.75rem 1rem; color: var(--ul-text); text-decoration: none; }
+.account-menu__panel a:hover { background: var(--ul-bg); }
+.account-menu__panel a.account-menu__logout:hover,
+.account-menu__panel a.account-menu__logout:focus-visible { color: var(--color-fail); }
+.account-menu__panel a:focus-visible { outline-color: var(--ul-maroon); outline-offset: -2px; }
+
+/* Narrow screens: collapsing nav links; the account chip stays top-right */
+@media (max-width: 760px) {
+    .js .nav-toggle { display: inline-block; }
+    .js .site-header__nav { display: none; order: 3; flex-basis: 100%; margin-left: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; padding-top: 0.5rem; border-top: 1px solid var(--ul-border); }
+    .js .site-header__nav.is-open { display: flex; }
+    .site-header__nav > a { padding: 0.5rem; }
+    .site-header__actions { margin-left: auto; }
+}
+@media (max-width: 480px) {
+    .account-chip__name { display: none; }
+    .account-chip { padding-right: 0.5rem; }
+}
+
+/* Settings page */
+.settings-list { display: grid; grid-template-columns: 7rem 1fr; gap: 0.5rem 1rem; }
+.settings-list dt { color: var(--ul-muted); }
+.settings-list dd { overflow-wrap: anywhere; }
+.settings-note { margin-top: 0.75rem; color: var(--ul-muted); font-size: 0.9rem; }
+@media (max-width: 480px) {
+    .settings-list { grid-template-columns: 1fr; gap: 0.25rem; }
+    .settings-list dd { margin-bottom: 0.5rem; }
+}

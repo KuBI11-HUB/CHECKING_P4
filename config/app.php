@@ -12,7 +12,7 @@ defined('APP_TIMEZONE') || define('APP_TIMEZONE', 'Asia/Manila');
 date_default_timezone_set(APP_TIMEZONE);
 
 // ---- Current term (Phase 4.1) --------------------------------------------------
-// Rules, GPA, units and documents are all evaluated for THIS term only.
+// Rules, official GWA, units and documents are all evaluated for THIS term only.
 // Change these two lines when a new semester starts.
 defined('CURRENT_SCHOOL_YEAR') || define('CURRENT_SCHOOL_YEAR', '2026-2027');
 defined('CURRENT_SEMESTER')    || define('CURRENT_SEMESTER', '1st');          // '1st' | '2nd' | 'Summer'

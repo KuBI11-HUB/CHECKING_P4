@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($pageTitle) ? sanitize($pageTitle) . ' — GRANTED' : 'GRANTED'; ?></title>
     <link rel="icon" type="image/png" href="/GRANTED/assets/icons/LOGO.png">
-    <link rel="stylesheet" href="/GRANTED/assets/css/style.css?v=<?php echo (int) filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
+    <?php include __DIR__ . '/stylesheets.php'; ?>
     <script>document.documentElement.className += ' js';</script>
     <?php include __DIR__ . '/theme_head.php'; ?>
 </head>
@@ -19,11 +19,13 @@ $headerPrivacy = privacyLink();
 <?php
 $shellNav = isAdminShell()
     ? [
-        ['Dashboard', 'layout-list', '/GRANTED/admin/dashboard.php', ['dashboard.php', 'scholar_detail.php', 'edit_scholar.php', 'edit_grade.php']],
+        ['Dashboard', 'layout-list', '/GRANTED/admin/dashboard.php', ['dashboard.php', 'scholar_detail.php', 'edit_scholar.php']],
         ['Scholarship Types', 'book-text', '/GRANTED/admin/scholarship_types.php', ['scholarship_types.php', 'edit_scholarship_type.php']],
-        ['Rules', 'list-checks', '/GRANTED/admin/rules.php', ['rules.php', 'edit_rule.php']],
+        ['Rules', 'circle-check', '/GRANTED/admin/rules.php', ['rules.php', 'edit_rule.php']],
+        ['Programs', 'inbox', '/GRANTED/admin/programs.php', ['programs.php']],
+        ['Requirements', 'list-checks', '/GRANTED/admin/requirements.php', ['requirements.php']],
         ['Enroll Scholar', 'users', '/GRANTED/admin/enroll_scholar.php', ['enroll_scholar.php']],
-        ['Enter Grades', 'pencil', '/GRANTED/admin/enter_grades.php', ['enter_grades.php', 'import_grades.php']],
+        ['Enter GWA', 'pencil', '/GRANTED/admin/enter_gwa.php', ['enter_gwa.php', 'import_gwa.php']],
         ['Document Review', 'file-text', '/GRANTED/admin/document_review.php', ['document_review.php']],
     ]
     : [

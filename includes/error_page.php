@@ -41,7 +41,7 @@ function renderErrorPage(int $status, ?string $customTitle = null, ?string $cust
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title><?php echo h($title); ?> — GRANTED</title>
-    <link rel="stylesheet" href="/GRANTED/assets/css/style.css?v=<?php echo (int) filemtime(__DIR__ . '/../assets/css/style.css'); ?>">
+    <?php include __DIR__ . '/stylesheets.php'; ?>
     <?php include __DIR__ . '/theme_head.php'; ?>
 </head>
 <body>

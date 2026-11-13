@@ -44,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['delete'])) {
         // Checked again here on purpose: the page may be stale, and the button is only hidden in the UI.
-        $scholarCount = $countFor($pdo, 'SELECT COUNT(*) FROM scholars WHERE scholarship_type_id = ?', $typeId);
+        $scholarCount = $countFor($pdo, 'SELECT COUNT(DISTINCT scholar_id) FROM scholarship_assignments WHERE scholarship_type_id = ?', $typeId);
         if ($scholarCount > 0) {
-            $message = 'This type cannot be deleted: ' . $scholarCount . ' scholar(s) still use it. Move them to another type first.';
+            $message = 'This type cannot be deleted: ' . $scholarCount . ' scholar(s) have or had this assignment.';
         } else {
             try {
                 $stmt = $pdo->prepare('DELETE FROM scholarship_types WHERE id = ?');
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo($listUrl);
             } catch (PDOException $e) {
                 if ((int)($e->errorInfo[1] ?? 0) === 1451) {   // foreign key: something else still points at this type
-                    $message = 'This type cannot be deleted because rules still refer to it.';
+                    $message = 'This type cannot be deleted because assignments, rules, or history still refer to it.';
                 } else {
                     throw $e;
                 }
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$scholarCount = $countFor($pdo, 'SELECT COUNT(*) FROM scholars WHERE scholarship_type_id = ?', $typeId);
+$scholarCount = $countFor($pdo, 'SELECT COUNT(DISTINCT scholar_id) FROM scholarship_assignments WHERE scholarship_type_id = ?', $typeId);
 $ruleCount = $countFor($pdo, 'SELECT COUNT(*) FROM rules WHERE scholarship_type_id = ?', $typeId);
 
 $pageTitle = 'Edit Scholarship Type';
@@ -127,7 +127,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="card">
     <h2>Delete this type</h2>
     <?php if ($scholarCount > 0): ?>
-        <p>This type cannot be deleted while <?php echo $scholarCount; ?> scholar(s) use it. Move them to another type first (Edit profile on the scholar's page).</p>
+        <p>This type cannot be deleted while <?php echo $scholarCount; ?> scholar(s) have or had assignments for it.</p>
     <?php else: ?>
         <p>No scholars use this type. Deleting it cannot be undone.</p>
         <form method="POST" action="<?php echo $editUrl; ?>" data-confirmation>

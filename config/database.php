@@ -6,7 +6,7 @@ if (is_file(__DIR__ . '/database.local.php')) {
     require __DIR__ . '/database.local.php';
 }
 defined('DB_HOST') || define('DB_HOST', 'localhost');
-defined('DB_NAME') || define('DB_NAME', 'granted_db');
+defined('DB_NAME') || define('DB_NAME', 'granted_dev');
 defined('DB_USER') || define('DB_USER', 'root');
 defined('DB_PASS') || define('DB_PASS', '');   // XAMPP's default is an empty password
 

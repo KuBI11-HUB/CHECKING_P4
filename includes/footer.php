@@ -5,6 +5,31 @@
 </footer>
 <?php if (isAdminShell() || isScholarShell()): ?></div></div><?php endif; ?>
 <script>
+document.querySelectorAll('form[data-show-save-on-change]').forEach(function (form) {
+    var saveButton = form.querySelector('[data-change-save]');
+    var fields = Array.prototype.slice.call(form.querySelectorAll('input:not([type="hidden"]), textarea, select'));
+    if (!saveButton) {
+        return;
+    }
+
+    var initialValues = fields.map(function (field) {
+        return field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value;
+    });
+
+    function updateSaveButton() {
+        var changed = fields.some(function (field, index) {
+            var value = field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value;
+            return value !== initialValues[index];
+        });
+        saveButton.hidden = !changed;
+    }
+
+    fields.forEach(function (field) {
+        field.addEventListener('input', updateSaveButton);
+        field.addEventListener('change', updateSaveButton);
+    });
+});
+
 document.addEventListener('submit', function (event) {
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || form.method.toUpperCase() !== 'POST') {
@@ -65,24 +90,6 @@ document.querySelectorAll('form[data-confirmation]').forEach(function (form) {
     });
 });
 
-document.querySelectorAll('[data-grade-confirmation-trigger]').forEach(function (trigger) {
-    var confirmationRow = document.getElementById(trigger.getAttribute('aria-controls'));
-    if (!confirmationRow) {
-        return;
-    }
-    var cancel = confirmationRow.querySelector('[data-grade-confirmation-cancel]');
-
-    trigger.addEventListener('click', function () {
-        confirmationRow.hidden = false;
-        trigger.setAttribute('aria-expanded', 'true');
-        cancel.focus();
-    });
-    cancel.addEventListener('click', function () {
-        confirmationRow.hidden = true;
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.focus();
-    });
-});
 </script>
 </body>
 </html>

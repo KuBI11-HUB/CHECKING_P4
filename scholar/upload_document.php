@@ -5,23 +5,36 @@ require_once __DIR__ . '/../includes/auth_check.php';
 $pdo = getDbConnection();
 
 $stmt = $pdo->prepare('SELECT * FROM scholars WHERE user_id = ?');
-$stmt->execute([$_SESSION['user_id']]);
+$stmt->execute([(int)$_SESSION['user_id']]);
 $scholar = $stmt->fetch();
 
 $message = '';
 $success = $_SESSION['upload_success'] ?? '';
 unset($_SESSION['upload_success']);
 $checklist = [];
-$documentType = '';
+$uploadChoices = [];
+$selectedRequirement = '';
 
 if ($scholar) {
-    $checklist = getDocumentChecklist($pdo, $scholar['id'], $scholar['scholarship_type_id']);
+    $checklist = getScholarDocumentChecklist($pdo, (int)$scholar['id']);
+    $uploadChoices = array_values(array_filter($checklist, static function (array $item): bool {
+        return !in_array($item['status'], ['Verified', 'Pending Review'], true);
+    }));
 }
 
 if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
-    // Used exactly as posted: the dropdown posts the stored checklist text, which is also what the rule engine compares.
-    $documentType = trim(is_string($_POST['document_type'] ?? null) ? $_POST['document_type'] : '');
+    $selectedRequirement = is_string($_POST['requirement'] ?? null) ? trim($_POST['requirement']) : '';
+    $selectedItem = null;
+    foreach ($checklist as $item) {
+        $key = $item['requirement_id'] !== null
+            ? 'req:' . (int)$item['requirement_id']
+            : 'name:' . $item['document_type'];
+        if ($key === $selectedRequirement) {
+            $selectedItem = $item;
+            break;
+        }
+    }
     $submissionToken = $_POST['submission_token'] ?? '';
     $file = $_FILES['document_file'] ?? null;
     $fileError = is_array($file) ? (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
@@ -31,10 +44,8 @@ if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!is_string($submissionToken) || !preg_match('/\A[a-f0-9]{64}\z/', $submissionToken)) {
         $message = 'This upload form is invalid. Please refresh the page and try again.';
-    } elseif ($documentType === '' || $fileError === UPLOAD_ERR_NO_FILE) {
+    } elseif ($selectedItem === null || $fileError === UPLOAD_ERR_NO_FILE) {
         $message = 'Please choose which document you\'re uploading and select a file.';
-    } elseif (!in_array($documentType, array_column($checklist, 'document_type'), true)) {
-        $message = 'Please choose one of the documents on your checklist.';
     } elseif ($fileError === UPLOAD_ERR_INI_SIZE || $fileError === UPLOAD_ERR_FORM_SIZE) {
         $message = 'File is too large — 5MB maximum.';
     } elseif ($fileError !== UPLOAD_ERR_OK) {
@@ -56,13 +67,14 @@ if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt = $pdo->prepare(
                         "INSERT INTO documents
-                            (scholar_id, document_type, filepath, submission_token, status, school_year, semester)
-                         VALUES (?, ?, ?, ?, 'Pending Review', ?, ?)"
+                            (scholar_id, document_type, requirement_id, filepath, submission_token, status, school_year, semester)
+                         VALUES (?, ?, ?, ?, ?, 'Pending Review', ?, ?)"
                     );
                     // The term comes from config/app.php (CURRENT_SCHOOL_YEAR / CURRENT_SEMESTER).
                     $stmt->execute([
                         $scholar['id'],
-                        $documentType,
+                        $selectedItem['document_type'],
+                        $selectedItem['requirement_id'],
                         $storedName,
                         $submissionToken,
                         CURRENT_SCHOOL_YEAR,
@@ -82,7 +94,7 @@ if ($scholar && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($message === '') {
                     evaluateScholar($pdo, $scholar['id']);
-                    $_SESSION['upload_success'] = $documentType . ' uploaded and is now pending review.';
+                    $_SESSION['upload_success'] = $selectedItem['document_type'] . ' uploaded and is now pending review.';
                     redirectTo('/GRANTED/scholar/upload_document.php');
                 }
             }
@@ -120,12 +132,12 @@ require_once __DIR__ . '/../includes/header.php';
             </li>
         <?php endforeach; ?>
         <?php if (empty($checklist)): ?>
-            <li class="empty-state"><span class="empty-state__content"><?php echo uiIcon('inbox'); ?>No documents are required for your scholarship type yet.</span></li>
+            <li class="empty-state"><span class="empty-state__content"><?php echo uiIcon('inbox'); ?>No documents are required for your active scholarship assignments yet.</span></li>
         <?php endif; ?>
     </ul>
 </div>
 
-<?php if (!empty($checklist)): ?>
+<?php if (!empty($uploadChoices)): ?>
 <div class="card upload-card">
     <h2>Upload a document</h2>
     <p class="upload-term">For <strong><?php echo h(CURRENT_SCHOOL_YEAR); ?> &middot; <?php echo h(CURRENT_SEMESTER); ?> semester</strong></p>
@@ -135,10 +147,12 @@ require_once __DIR__ . '/../includes/header.php';
         <?php echo csrfField(); ?>
         <input type="hidden" name="submission_token" value="<?php echo sanitize($submissionToken); ?>">
 
-        <label for="document_type">Which document is this?</label>
-        <select id="document_type" name="document_type" required>
-            <?php foreach ($checklist as $item): ?>
-                <option value="<?php echo sanitize($item['document_type']); ?>" <?php echo $documentType === $item['document_type'] ? 'selected' : ''; ?>><?php echo h($item['document_type']); ?></option>
+        <label for="requirement">Which document is this?</label>
+        <select id="requirement" name="requirement" required>
+            <option value="">Choose a checklist item</option>
+            <?php foreach ($uploadChoices as $item): ?>
+                <?php $key = $item['requirement_id'] !== null ? 'req:' . (int)$item['requirement_id'] : 'name:' . $item['document_type']; ?>
+                <option value="<?php echo h($key); ?>" <?php echo $selectedRequirement === $key ? 'selected' : ''; ?>><?php echo h($item['document_type']); ?></option>
             <?php endforeach; ?>
         </select>
 

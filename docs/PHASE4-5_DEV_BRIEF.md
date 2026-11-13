@@ -1,5 +1,7 @@
 # GRANTED — Developer Brief: Phase 4 and Phase 5
 
+> **Historical planning brief:** this document describes the former GPA/grades schema and unfinished phases. It is not a guide to the current GWA-based application. Use `docs/DATABASE_GUIDE.md` and `database/granted_final_schema.sql` as the current design references; review the schema's setup warning before using it.
+
 For the two developers. Phases 1–3 are done and working. This brief says what to build next, where in the code, and how to know it's finished.
 
 **Read first (20 minutes):** `docs/DATABASE_GUIDE.md` (set up your local copy and learn the tables), `FEATURES.pdf` (the spec), and `README_PROTOTYPE.md` (the demo script — run it once so you know what "working" looks like).
@@ -76,7 +78,7 @@ Today the term is hardcoded in places and the engine ignores it.
   - `evaluateScholar()` selects rules with only `scholarship_type_id` and `is_active`. Add `school_year` and `semester` = the current term.
   - `recalculateGpaAndUnits()` — only sum `grades` rows of the current term.
   - The DOCUMENT case of `evaluateRule()` and `getDocumentChecklist()` — match documents of the current term.
-- Pre-fill school year and semester on the admin forms (`admin/rules.php`, `admin/enter_grades.php`) with the constants.
+- Pre-fill school year and semester on the admin forms (`admin/rules.php`, `admin/enter_gwa.php`) with the constants.
 - **Stale results bug (verified):** the engine never deletes old rows from `evaluations`. If a rule is deactivated, or the term changes, its old result stays in the table. The query in `scholar/dashboard.php` that joins `evaluations` to `rules` has no `is_active` or term filter, so a deactivated rule's old FAIL still shows in the scholar's breakdown while the overall status ignores it. Fix it in the query: add `AND r.is_active = 1 AND r.school_year = ? AND r.semester = ?` (current term). The same filter is needed in the admin detail page (5.2). Don't fix it by deleting evaluation rows.
 - **Deactivating a rule doesn't re-run the engine (verified).** `admin/rules.php` only runs `UPDATE rules SET is_active = 0`. Scholars on that scholarship type keep their old overall status (for example FAIL because of the rule that was just switched off) until the next grade save or document review happens to call `evaluateScholar()`. After the `UPDATE`, loop over the scholars with that rule's `scholarship_type_id` and call `evaluateScholar()` for each. The same applies later to creating and editing rules (Phase 6).
 

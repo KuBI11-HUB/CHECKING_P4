@@ -16,6 +16,35 @@ function sanitize(?string $value): string
     return htmlspecialchars(trim($value ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
+function formatScholarName(array $scholar, string $style = 'table'): string
+{
+    $fname = trim((string)($scholar['fname'] ?? ''));
+    $mname = trim((string)($scholar['mname'] ?? ''));
+    $lname = trim((string)($scholar['lname'] ?? ''));
+    $suffix = trim((string)($scholar['suffix'] ?? ''));
+    $middleInitial = $mname !== ''
+        ? (function_exists('mb_substr') ? mb_substr($mname, 0, 1) : substr($mname, 0, 1)) . '.'
+        : '';
+    $last = trim($lname . ($suffix !== '' ? ' ' . $suffix : ''));
+
+    if ($style === 'account') {
+        return trim(implode(' ', array_filter([$fname, $middleInitial, $last], static fn(string $part): bool => $part !== '')));
+    }
+
+    $first = trim(implode(' ', array_filter([$fname, $middleInitial], static fn(string $part): bool => $part !== '')));
+    return $first !== '' && $last !== '' ? $last . ', ' . $first : ($last !== '' ? $last : $first);
+}
+
+function scholarNameSearchSql(string $alias, string $prefix): string
+{
+    if (!preg_match('/\A[a-zA-Z][a-zA-Z0-9_]*\z/', $alias)
+        || !preg_match('/\A[a-zA-Z][a-zA-Z0-9_]*\z/', $prefix)) {
+        throw new InvalidArgumentException('Invalid internal SQL alias or parameter prefix.');
+    }
+    return "({$alias}.fname LIKE :{$prefix}_fname OR {$alias}.mname LIKE :{$prefix}_mname"
+        . " OR {$alias}.lname LIKE :{$prefix}_lname OR {$alias}.suffix LIKE :{$prefix}_suffix)";
+}
+
 function uiIcon(string $name): string
 {
     $icons = [
@@ -127,62 +156,74 @@ function dueDateHtml(?string $dueDate, string $status): string
     return '<br><small>' . $html . '</small>';
 }
 
-/**
- * Validates grade form input. Shared by enter_grades.php and edit_grade.php so both apply
- * the same rules and messages. $excludeGradeId lets an edit ignore the row being edited
- * in the duplicate check.
- * Returns ['error' => string|null, 'values' => cleaned values ready for INSERT/UPDATE].
- */
-function validateGradeInput(PDO $pdo, array $input, ?int $excludeGradeId = null): array
+function validateGwaInput(PDO $pdo, array $input): array
 {
     $text = static fn(string $key): string => is_string($input[$key] ?? null) ? $input[$key] : '';
-
+    $positiveId = static function (string $key) use ($input): int {
+        $raw = $input[$key] ?? null;
+        if (is_int($raw)) {
+            return $raw > 0 ? $raw : 0;
+        }
+        if (!is_string($raw)) {
+            return 0;
+        }
+        $id = filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        return $id === false ? 0 : $id;
+    };
+    $gwa = trim($text('gwa'));
+    $units = filter_var($input['total_units'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $values = [
-        'scholar_id'  => (int)($input['scholar_id'] ?? 0),
-        'subject'     => sanitize($text('subject')),
-        'grade'       => trim($text('grade')),
-        'units'       => filter_var($input['units'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10]]),
-        'school_year' => sanitize($text('school_year')),
-        'semester'    => $text('semester'),
+        'scholar_id' => $positiveId('scholar_id'),
+        'school_year' => trim($text('school_year')),
+        'semester' => trim($text('semester')),
+        'gwa' => $gwa,
+        'total_units' => $units,
+        'source_document_id' => $positiveId('source_document_id'),
     ];
 
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM scholars WHERE id = ?');
-    $stmt->execute([$values['scholar_id']]);
-    $scholarExists = (int)$stmt->fetchColumn() > 0;
-
     $error = null;
-    $duplicate = false;
-    if (!$scholarExists) {
-        $error = 'Please choose a scholar.';
-    } elseif ($values['subject'] === '') {
-        $error = 'Please enter a subject.';
-    } elseif (!preg_match('/^\d+(\.\d{1,2})?$/', $values['grade'])
-        || (float)$values['grade'] < 1 || (float)$values['grade'] > 5) {
-        $error = 'Grade must be a number from 1.00 to 5.00 (up to two decimals).';
-    } elseif ($values['units'] === false) {
-        $error = 'Units must be a whole number from 1 to 10.';
+    if ($values['scholar_id'] < 1) {
+        $error = 'Choose a scholar.';
+    } elseif (!preg_match('/^\d+(\.\d{1,2})?$/', $gwa) || (float)$gwa < 1 || (float)$gwa > 5) {
+        $error = 'GWA must be between 1.00 and 5.00, with up to two decimals.';
+    } elseif ($units === false) {
+        $error = 'Total units must be a positive whole number.';
     } elseif (!preg_match('/^\d{4}-\d{4}$/', $values['school_year'])) {
         $error = 'School year must look like 2026-2027.';
     } elseif (!in_array($values['semester'], ['1st', '2nd', 'Summer'], true)) {
         $error = 'Semester must be 1st, 2nd or Summer.';
-    } else {
+    } elseif ($values['source_document_id'] < 1) {
+        $error = 'Choose the verified Certificate of Grades used as the source.';
+    }
+
+    if ($error === null) {
         $stmt = $pdo->prepare(
-            'SELECT COUNT(*) FROM grades
-             WHERE scholar_id = ? AND subject = ? AND school_year = ? AND semester = ? AND id <> ?'
+            "SELECT d.id
+             FROM documents d
+             LEFT JOIN requirements req ON req.id = d.requirement_id
+             WHERE d.id = ? AND d.scholar_id = ?
+               AND d.school_year = ? AND d.semester = ?
+               AND d.status = 'Verified'
+               AND (
+                    (d.requirement_id IS NOT NULL AND BINARY req.name = BINARY 'Certificate of Grades')
+                    OR (d.requirement_id IS NULL AND BINARY d.document_type = BINARY 'Certificate of Grades')
+               )"
         );
         $stmt->execute([
-            $values['scholar_id'], $values['subject'], $values['school_year'], $values['semester'],
-            $excludeGradeId ?? 0,
+            $values['source_document_id'],
+            $values['scholar_id'],
+            $values['school_year'],
+            $values['semester'],
         ]);
-        if ((int)$stmt->fetchColumn() > 0) {
-            $duplicate = true;
-            $error = 'A grade for "' . $values['subject']
-                . '" is already recorded for this scholar in '
-                . $values['school_year'] . ' ' . $values['semester'] . '. Duplicate grades are not allowed.';
+        if ($stmt->fetchColumn() === false) {
+            $error = 'The source must be a currently verified Certificate of Grades for this scholar and term.';
         }
     }
 
-        return ['error' => $error, 'values' => $values, 'duplicate' => $duplicate];
+    if ($units !== false) {
+        $values['total_units'] = $units;
+    }
+    return ['error' => $error, 'values' => $values];
 }
 
 /**
@@ -207,11 +248,20 @@ function validateRuleInput(PDO $pdo, array $input): array
         $operator = '==';
     }
 
+    $requirementId = (int)($input['requirement_id'] ?? 0);
+    $requirementName = '';
+    if ($requirementId > 0) {
+        $stmt = $pdo->prepare('SELECT name FROM requirements WHERE id = ? AND is_active = 1');
+        $stmt->execute([$requirementId]);
+        $requirementName = (string)($stmt->fetchColumn() ?: '');
+    }
     $values = [
         'scholarship_type_id' => (int)$text('scholarship_type_id'),
         'rule_type'           => $ruleType,
+        'requirement_id'      => $requirementId > 0 ? $requirementId : null,
         'operator'            => $operator,
-        'threshold_value'     => sanitize($text('threshold_value')),
+        'threshold_value'     => $ruleType === 'DOCUMENT' && $requirementName !== ''
+            ? $requirementName : trim($text('threshold_value')),
         'school_year'         => sanitize($text('school_year')),
         'semester'            => $text('semester'),
         'due_date'            => $dueDate,
@@ -226,20 +276,26 @@ function validateRuleInput(PDO $pdo, array $input): array
 
     $error = null;
     if (!$typeExists
-        || !in_array($values['rule_type'], ['GPA', 'UNIT_LOAD', 'DOCUMENT'], true)
+        || !in_array($values['rule_type'], ['GWA', 'UNIT_LOAD', 'DOCUMENT', 'DEADLINE'], true)
         || !in_array($values['operator'], ['>=', '<=', '>', '<', '=='], true)
         || $values['threshold_value'] === ''
         || $values['school_year'] === ''
         || !in_array($values['semester'], ['1st', '2nd', 'Summer'], true)) {
         $error = 'Please fill in every field correctly.';
-    } elseif ($values['rule_type'] !== 'DOCUMENT' && !is_numeric($values['threshold_value'])) {
-        $error = 'The threshold for a GPA or unit load rule must be a number.';
+    } elseif ($values['rule_type'] === 'DOCUMENT' && $values['requirement_id'] === null
+        && trim($text('threshold_value')) === '') {
+        $error = 'Choose a requirement.';
+    } elseif ($values['rule_type'] !== 'DOCUMENT' && $values['rule_type'] !== 'DEADLINE'
+        && !is_numeric($values['threshold_value'])) {
+        $error = 'The threshold for a GWA or unit load rule must be a number.';
+    } elseif ($values['rule_type'] === 'DOCUMENT' && $values['requirement_id'] !== null && $requirementName === '') {
+        $error = 'Choose an active requirement.';
     }
 
     return ['error' => $error, 'values' => $values];
 }
 
-/** Up to two initials for the avatar circle: first + last word, or the first two letters of a single word. */
+/** Up to two initials from structured scholar names. */
 function accountInitials(string $name): string
 {
     $name = html_entity_decode($name, ENT_QUOTES, 'UTF-8');
@@ -262,11 +318,11 @@ function currentAccount(?PDO $pdo = null): array
     if ($role === 'scholar') {
         try {
             $pdo = $pdo ?? getDbConnection();
-            $stmt = $pdo->prepare('SELECT full_name FROM scholars WHERE user_id = ?');
+            $stmt = $pdo->prepare('SELECT fname, mname, lname, suffix FROM scholars WHERE user_id = ?');
             $stmt->execute([$_SESSION['user_id']]);
-            $fullName = $stmt->fetchColumn();
-            if ($fullName !== false) {
-                $name = trim((string)$fullName);
+            $scholar = $stmt->fetch();
+            if ($scholar) {
+                $name = formatScholarName($scholar, 'account');
             }
         } catch (Throwable $e) {
             error_log('GRANTED account menu could not load the name: ' . $e->getMessage());   // the header must never break a page

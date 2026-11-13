@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/auth_check.php';
 $pdo = getDbConnection();
 $ruleId = (int)($_GET['id'] ?? 0);
 
-$stmt = $pdo->prepare('SELECT * FROM rules WHERE id = ?');
+$stmt = $pdo->prepare('SELECT r.*, req.name AS requirement_name FROM rules r LEFT JOIN requirements req ON req.id = r.requirement_id WHERE r.id = ?');
 $stmt->execute([$ruleId]);
 $existing = $stmt->fetch();
 
@@ -30,6 +30,7 @@ $message = '';
 $form = [
     'scholarship_type_id' => (string)$existing['scholarship_type_id'],
     'rule_type'           => (string)$existing['rule_type'],
+    'requirement_id'      => (string)($existing['requirement_id'] ?? ''),
     'operator'            => (string)$existing['operator'],
     'threshold_value'     => (string)$existing['threshold_value'],
     'school_year'         => (string)$existing['school_year'],
@@ -41,7 +42,7 @@ $form = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
-    foreach (['scholarship_type_id', 'rule_type', 'operator', 'threshold_value', 'school_year', 'semester', 'due_date'] as $key) {
+    foreach (['scholarship_type_id', 'rule_type', 'requirement_id', 'operator', 'threshold_value', 'school_year', 'semester', 'due_date'] as $key) {
         $form[$key] = is_string($_POST[$key] ?? null) ? $_POST[$key] : '';
     }
     $form['is_active'] = isset($_POST['is_active']) ? '1' : '0';
@@ -55,11 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $oldTypeId = (int)$existing['scholarship_type_id'];
 
         $stmt = $pdo->prepare(
-            'UPDATE rules SET scholarship_type_id = ?, rule_type = ?, operator = ?, threshold_value = ?,
+            'UPDATE rules SET scholarship_type_id = ?, rule_type = ?, requirement_id = ?, operator = ?, threshold_value = ?,
                     school_year = ?, semester = ?, due_date = ?, is_active = ?
              WHERE id = ?'
         );
-        $stmt->execute([$v['scholarship_type_id'], $v['rule_type'], $v['operator'], $v['threshold_value'],
+        $stmt->execute([$v['scholarship_type_id'], $v['rule_type'], $v['requirement_id'], $v['operator'], $v['threshold_value'],
                         $v['school_year'], $v['semester'], $v['due_date'], (int)$form['is_active'], $ruleId]);
 
         // Statuses must follow the edit right away. If the rule moved to another type, both types are affected.
@@ -74,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $types = $pdo->query('SELECT id, name FROM scholarship_types ORDER BY name')->fetchAll();
+$requirements = $pdo->query(
+    'SELECT id, name FROM requirements WHERE is_active = 1 OR id = ' . (int)($existing['requirement_id'] ?? 0) . ' ORDER BY name'
+)->fetchAll();
 
 $pageTitle = 'Edit Rule';
 require_once __DIR__ . '/../includes/header.php';
@@ -98,8 +102,16 @@ require_once __DIR__ . '/../includes/header.php';
 
         <label for="rule_type">Rule type</label>
         <select id="rule_type" name="rule_type" required>
-            <?php foreach (['GPA' => 'GPA', 'UNIT_LOAD' => 'Unit load', 'DOCUMENT' => 'Document'] as $value => $label): ?>
+            <?php foreach (['GWA' => 'GWA', 'UNIT_LOAD' => 'Unit load', 'DOCUMENT' => 'Document', 'DEADLINE' => 'Deadline (not evaluated yet)'] as $value => $label): ?>
                 <option value="<?php echo $value; ?>" <?php echo $form['rule_type'] === $value ? 'selected' : ''; ?>><?php echo $label; ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <label for="requirement_id">Requirement (for DOCUMENT rule)</label>
+        <select id="requirement_id" name="requirement_id">
+            <option value="">Use exact legacy document label</option>
+            <?php foreach ($requirements as $requirement): ?>
+                <option value="<?php echo (int)$requirement['id']; ?>" <?php echo $form['requirement_id'] === (string)$requirement['id'] ? 'selected' : ''; ?>><?php echo h($requirement['name']); ?></option>
             <?php endforeach; ?>
         </select>
 
@@ -112,7 +124,7 @@ require_once __DIR__ . '/../includes/header.php';
         </select>
         </div>
 
-        <label for="threshold_value" id="threshold_label">Minimum / maximum value</label>
+        <label for="threshold_value" id="threshold_label">Threshold / exact legacy label</label>
         <input type="text" id="threshold_value" name="threshold_value" value="<?php echo h($form['threshold_value']); ?>" required>
 
         <label for="school_year">School year</label>
@@ -142,18 +154,28 @@ require_once __DIR__ . '/../includes/header.php';
     <script>
         var ruleType = document.getElementById('rule_type');
         var threshold = document.getElementById('threshold_value');
+        var requirement = document.getElementById('requirement_id');
 
         function updateRuleForm() {
             var isDocument = ruleType.value === 'DOCUMENT';
+            var isMappedDocument = isDocument && requirement.value !== '';
             document.getElementById('operator_group').style.display = isDocument ? 'none' : '';
             document.getElementById('due_date_group').style.display = isDocument ? '' : 'none';
-            document.getElementById('threshold_label').textContent = isDocument ? 'Document name (exact)' : 'Minimum / maximum value';
-            threshold.type = isDocument ? 'text' : 'number';
+            requirement.disabled = !isDocument;
+            threshold.required = !isMappedDocument;
+            threshold.disabled = isMappedDocument;
+            document.getElementById('threshold_label').textContent = isDocument
+                ? (isMappedDocument ? 'Legacy document name (not needed for a mapped requirement)' : 'Legacy document name (exact, if unmapped)')
+                : 'Threshold';
+            threshold.type = 'text';
             threshold.step = 'any';
             threshold.min = '0';
+            threshold.placeholder = isMappedDocument ? 'Using the selected requirement'
+                : (isDocument ? 'Only needed for an unmapped legacy rule' : 'Numeric threshold');
         }
 
         ruleType.addEventListener('change', updateRuleForm);
+        requirement.addEventListener('change', updateRuleForm);
         updateRuleForm();
     </script>
 </div>

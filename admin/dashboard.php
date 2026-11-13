@@ -13,11 +13,11 @@ $paging['page'] = min($paging['page'], $totalPages);          // a page past the
 $offset = ($paging['page'] - 1) * $paging['per_page'];
 $results = getResults($pdo, $filters, $paging['per_page'], $offset);
 
-$totalScholars = (int)$pdo->query('SELECT COUNT(*) FROM scholars')->fetchColumn();
+$totalScholars = (int)$pdo->query('SELECT COUNT(DISTINCT scholar_id) FROM scholarship_assignments WHERE is_active = 1 AND ended_at IS NULL')->fetchColumn();
 $statusCounts = ['PASS' => 0, 'PENDING' => 0, 'FAIL' => 0];
-foreach ($pdo->query('SELECT current_status, COUNT(*) AS c FROM scholars GROUP BY current_status')->fetchAll() as $row) {
-    if (isset($statusCounts[$row['current_status']])) {
-        $statusCounts[$row['current_status']] = (int)$row['c'];
+foreach ($pdo->query('SELECT a.status, COUNT(*) AS c FROM scholarship_assignments a WHERE a.is_active = 1 AND a.ended_at IS NULL GROUP BY a.status')->fetchAll() as $row) {
+    if (isset($statusCounts[$row['status']])) {
+        $statusCounts[$row['status']] = (int)$row['c'];
     }
 }
 $exportQuery = resultsQueryString($filters);                          // the CSV export ignores paging
@@ -45,8 +45,13 @@ $activeFilters = [];
 if ($filters['q'] !== '') {
     $activeFilters[] = ['Search', $filters['q'], ['q' => '']];
 }
-if ($filters['program'] !== '' && in_array($filters['program'], $options['programs'], true)) {
-    $activeFilters[] = ['Program', $filters['program'], ['program' => '']];
+if ($filters['program_id'] > 0) {
+    foreach ($options['programs'] as $program) {
+        if ((int)$program['id'] === $filters['program_id']) {
+            $activeFilters[] = ['Program', $program['name'], ['program_id' => 0]];
+            break;
+        }
+    }
 }
 foreach ($options['types'] as $type) {
     if ($filters['scholarship_type_id'] === (int)$type['id']) {
@@ -81,7 +86,7 @@ require_once __DIR__ . '/../includes/header.php';
             <label for="q" class="visually-hidden">Search name or email</label>
             <input type="search" id="q" name="q" value="<?php echo sanitize($filters['q']); ?>" maxlength="100" placeholder="Search name or email">
             <?php echo $hiddenFields([
-                'program' => $filters['program'],
+                'program_id' => $filters['program_id'] > 0 ? $filters['program_id'] : '',
                 'status' => $filters['status'],
                 'scholarship_type_id' => $filters['scholarship_type_id'] > 0 ? $filters['scholarship_type_id'] : '',
                 'per_page' => $paging['per_page'] !== RESULTS_PER_PAGE_DEFAULT ? $paging['per_page'] : '',
@@ -105,8 +110,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <select id="program" name="program">
                     <option value="">All programs</option>
                     <?php foreach ($options['programs'] as $program): ?>
-                        <?php // The value stays exactly as stored so it matches in SQL; only the label is decoded. ?>
-                        <option value="<?php echo sanitize($program); ?>" <?php echo $filters['program'] === $program ? 'selected' : ''; ?>><?php echo h($program); ?></option>
+                        <option value="<?php echo (int)$program['id']; ?>" <?php echo $filters['program_id'] === (int)$program['id'] ? 'selected' : ''; ?>><?php echo h($program['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -156,17 +160,17 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="table-scroll">
     <table class="data-table data-table--sticky">
         <thead>
-            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th class="num">GPA</th><th class="num">Units</th><th>Calculated status</th><th>Office decision</th></tr>
+            <tr><th>Scholar</th><th>Program</th><th>Scholarship type</th><th class="num">GWA</th><th class="num">Units</th><th>Assignment status</th><th>Office decision</th></tr>
         </thead>
         <tbody>
         <?php foreach ($results as $s): ?>
             <tr>
-                <td><a href="/GRANTED/admin/scholar_detail.php?id=<?php echo (int)$s['id']; ?>"><?php echo h($s['full_name']); ?></a></td>
+                <td><a href="/GRANTED/admin/scholar_detail.php?id=<?php echo (int)$s['id']; ?>"><?php echo h(formatScholarName($s)); ?></a></td>
                 <td><?php echo $s['program'] ? h($s['program']) : '—'; ?></td>
                 <td><?php echo h($s['type_name']); ?></td>
-                <td class="num"><?php echo $s['current_gpa'] !== null ? h((string)$s['current_gpa']) : '—'; ?></td>
+                <td class="num"><?php echo $s['current_gwa'] !== null ? h((string)$s['current_gwa']) : '—'; ?></td>
                 <td class="num"><?php echo $s['current_units'] !== null ? h((string)$s['current_units']) : '—'; ?></td>
-                <td><span class="status-badge <?php echo statusBadgeClass($s['current_status']); ?>"><?php echo h($s['current_status']); ?></span></td>
+                <td><span class="status-badge <?php echo statusBadgeClass($s['assignment_status']); ?>"><?php echo h($s['assignment_status']); ?></span></td>
                 <td><?php echo $s['office_decision'] ? '<span class="decision-chip">' . h(str_replace('_', ' ', $s['office_decision'])) . '</span>' : '—'; ?></td>
             </tr>
         <?php endforeach; ?>

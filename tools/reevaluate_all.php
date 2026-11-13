@@ -2,7 +2,7 @@
 /**
  * Re-run the rule engine for EVERY scholar.
  * Use it after you change CURRENT_SCHOOL_YEAR / CURRENT_SEMESTER in config/app.php, so statuses
- * match the new term straight away instead of waiting for each scholar's next grade or document change.
+ * match the new term straight away instead of waiting for each scholar's next GWA or document change.
  *
  *   C:\xampp\php\php.exe tools\reevaluate_all.php
  *
@@ -24,19 +24,24 @@ $autoload = __DIR__ . '/../vendor/autoload.php';
 if (is_file($autoload)) {
     require_once $autoload;
 }
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/rule_engine.php';
 require_once __DIR__ . '/../includes/notifications.php';
 
 $pdo = getDbConnection();
-$scholars = $pdo->query('SELECT id, current_status FROM scholars ORDER BY id')->fetchAll();
+$assignments = $pdo->query(
+    'SELECT id, scholar_id, status FROM scholarship_assignments
+     WHERE is_active = 1 AND ended_at IS NULL ORDER BY id'
+)->fetchAll();
 
 $changed = 0;
-foreach ($scholars as $scholar) {
-    $newStatus = evaluateScholar($pdo, (int)$scholar['id']);
-    if ($newStatus !== $scholar['current_status']) {
+foreach ($assignments as $assignment) {
+    refreshScholarMetrics($pdo, (int)$assignment['scholar_id']);
+    $newStatus = evaluateAssignment($pdo, (int)$assignment['id']);
+    if ($newStatus !== $assignment['status']) {
         $changed++;
     }
 }
 
-echo 'Term ' . CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER . ': re-evaluated ' . count($scholars)
-   . " scholars, {$changed} changed status.\n";
+echo 'Term ' . CURRENT_SCHOOL_YEAR . ' ' . CURRENT_SEMESTER . ': re-evaluated ' . count($assignments)
+   . " assignments, {$changed} changed status.\n";

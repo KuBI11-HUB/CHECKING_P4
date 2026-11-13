@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmt->execute([$decision, $remarks, $_SESSION['user_id'], $documentId]);
 
-            // Document status changed -> re-run the rule engine for this scholar
-            evaluateScholar($pdo, $doc['scholar_id']);
+            // A reviewed Certificate of Grades can change GWA usability.
+            evaluateScholar($pdo, (int)$doc['scholar_id']);
 
             // The reviewed row leaves the Pending view, so say what happened. Back to the same filtered view.
             setFlash('Document marked ' . $decision . '.');
@@ -77,17 +77,20 @@ if ($search !== '') {
     $any = [];
     foreach (array_values(array_unique([$search, htmlspecialchars($search, ENT_QUOTES, 'UTF-8')])) as $i => $spelling) {
         $like = '%' . addcslashes($spelling, '\\%_') . '%';
-        $any[] = "s.full_name LIKE :name{$i} OR u.email LIKE :email{$i}";
-        $params[":name{$i}"] = $like;
+        $any[] = '(' . scholarNameSearchSql('s', 'review' . $i) . ') OR u.email LIKE :email' . $i;
+        foreach (['fname', 'mname', 'lname', 'suffix'] as $part) {
+            $params[":review{$i}_{$part}"] = $like;
+        }
         $params[":email{$i}"] = $like;
     }
     $where[] = '(' . implode(' OR ', $any) . ')';
 }
 
 $stmt = $pdo->prepare(
-    'SELECT d.*, s.full_name FROM documents d
+    'SELECT d.*, s.fname, s.mname, s.lname, s.suffix, req.name AS requirement_name FROM documents d
      JOIN scholars s ON s.id = d.scholar_id
-     JOIN users u ON u.id = s.user_id'
+     JOIN users u ON u.id = s.user_id
+     LEFT JOIN requirements req ON req.id = d.requirement_id'
     . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
     . " ORDER BY (d.status = 'Pending Review') DESC, d.uploaded_at DESC, d.id DESC"
 );
@@ -135,8 +138,8 @@ require_once __DIR__ . '/../includes/header.php';
         <tbody>
         <?php foreach ($documents as $d): ?>
             <tr class="<?php echo $d['status'] === 'Pending Review' ? 'review-row--pending' : 'review-row--done'; ?>">
-                <td><?php echo h($d['full_name']); ?></td>
-                <td><?php echo h($d['document_type']); ?></td>
+                <td><?php echo h(formatScholarName($d)); ?></td>
+                <td><?php echo h($d['requirement_name'] ?? $d['document_type']); ?></td>
                 <td><a href="/GRANTED/admin/view_document.php?id=<?php echo (int)$d['id']; ?>" target="_blank"><span class="icon-label"><?php echo uiIcon('file-text'); ?>View file</span></a></td>
                 <td><span class="status-badge <?php
                     echo $d['status'] === 'Verified' ? 'status-badge--pass'
@@ -150,8 +153,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <input type="hidden" name="document_id" value="<?php echo (int)$d['id']; ?>">
                         <input type="text" name="remarks" placeholder="Remark (needed to reject)" aria-label="Remark for <?php echo h($d['document_type']); ?>">
                         <div class="review-form__buttons">
-                            <button type="submit" name="decision" value="Verified" class="btn" aria-label="Verify <?php echo h($d['document_type']); ?> from <?php echo h($d['full_name']); ?>">Verify</button>
-                            <button type="submit" name="decision" value="Rejected" class="btn btn--danger" aria-label="Reject <?php echo h($d['document_type']); ?> from <?php echo h($d['full_name']); ?>">Reject</button>
+                            <button type="submit" name="decision" value="Verified" class="btn" aria-label="Verify <?php echo h($d['document_type']); ?> from <?php echo h(formatScholarName($d)); ?>">Verify</button>
+                            <button type="submit" name="decision" value="Rejected" class="btn btn--danger" aria-label="Reject <?php echo h($d['document_type']); ?> from <?php echo h(formatScholarName($d)); ?>">Reject</button>
                         </div>
                     </form>
                     <?php else: ?>

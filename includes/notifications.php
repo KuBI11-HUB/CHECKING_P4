@@ -2,7 +2,7 @@
 /**
  * Phase 4 notification helpers. Every notification is saved in the `notifications` table first,
  * then emailed (when MAIL_ENABLED is true). Mail delivery is best effort and never blocks
- * a grade save, document review, or status recalculation.
+ * a GWA save, document review, or status recalculation.
  */
 require_once __DIR__ . '/gmail_mailer.php';
 
@@ -109,17 +109,20 @@ function notificationHtml(string $category, string $title, string $name, string 
         . 'GRANTED Scholarship Office<br>University of Luzon</td></tr></table></body></html>';
 }
 
-function buildStatusChangeEmail(string $fullName, string $oldStatus, string $newStatus): array
+function buildStatusChangeEmail(string $fullName, string $oldStatus, string $newStatus, string $scholarshipType): array
 {
     $name = notificationPlainText($fullName);
+    $type = notificationPlainText($scholarshipType);
     return [
-        'GRANTED scholarship status update',
-        "Hello {$name},\n\nYour scholarship status has changed from {$oldStatus} to {$newStatus}.\n\nPlease sign in to GRANTED to view your current requirements.\n\n" . notificationLoginText() . "\n\nGRANTED Scholarship Office",
+        'GRANTED ' . $type . ' status update',
+        "Hello {$name},\n\nYour {$type} status has changed from {$oldStatus} to {$newStatus}.\n\nPlease sign in to GRANTED to view your current requirements.\n\n" . notificationLoginText() . "\n\nGRANTED Scholarship Office",
         notificationHtml(
             'Status change',
-            'Your status has changed',
+            'Your ' . $type . ' status has changed',
             $name,
-            '<p style="margin:0 0 18px;font-size:15px;line-height:1.6;">Your calculated scholarship status has been updated. Compare the latest result below:</p>'
+            '<p style="margin:0 0 18px;font-size:15px;line-height:1.6;">Your calculated status for <strong>'
+                . htmlspecialchars($type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                . '</strong> has been updated. Compare the latest result below:</p>'
                 . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">'
                 . '<tr><td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;color:#5C5C5C;">Previous status</td>'
                 . '<td style="padding:12px 14px;background:#F7F7F7;border-bottom:1px solid #E5E5E5;text-align:right;">' . notificationStatusBadge($oldStatus) . '</td></tr>'
@@ -177,11 +180,12 @@ function buildDeadlineReminderEmail(string $fullName, string $documentType, stri
 function logNotification(PDO $pdo, array $data): int
 {
     $stmt = $pdo->prepare(
-        "INSERT INTO notifications (scholar_id, type, channel, subject, message, old_status, new_status, rule_id, send_status)
-         VALUES (:scholar_id, :type, 'EMAIL', :subject, :message, :old_status, :new_status, :rule_id, 'QUEUED')"
+        "INSERT INTO notifications (scholar_id, assignment_id, type, channel, subject, message, old_status, new_status, rule_id, send_status)
+         VALUES (:scholar_id, :assignment_id, :type, 'EMAIL', :subject, :message, :old_status, :new_status, :rule_id, 'QUEUED')"
     );
     $stmt->execute([
         ':scholar_id' => (int)$data['scholar_id'],
+        ':assignment_id' => isset($data['assignment_id']) ? (int)$data['assignment_id'] : null,
         ':type' => $data['type'],
         ':subject' => notificationTextLimit((string)$data['subject'], 200),
         ':message' => (string)$data['message'],
@@ -240,25 +244,17 @@ function sendNotificationEmail(PDO $pdo, int $notificationId, ?callable $sender 
     }
 }
 
-/** Called from evaluateScholar() after the new status is saved. Does nothing if the status did not change. */
-function notifyStatusChange(PDO $pdo, int $scholarId, ?string $oldStatus, string $newStatus, ?callable $sender = null): void
+/** Called after an assignment's status changes. */
+function notifyAssignmentStatusChange(PDO $pdo, array $assignment, string $oldStatus, string $newStatus, ?callable $sender = null): void
 {
-    if ($oldStatus === $newStatus) {
-        return;
-    }
-
     try {
-        $stmt = $pdo->prepare('SELECT full_name FROM scholars WHERE id = ?');
-        $stmt->execute([$scholarId]);
-        $fullName = $stmt->fetchColumn();
-        if ($fullName === false) {
-            return;
-        }
-
-        [$subject, $body, $html] = buildStatusChangeEmail((string)$fullName, (string)$oldStatus, $newStatus);
+        $fullName = formatScholarName($assignment, 'account');
+        $scholarshipType = (string)$assignment['scholarship_type_name'];
+        [$subject, $body, $html] = buildStatusChangeEmail($fullName, $oldStatus, $newStatus, $scholarshipType);
 
         $id = logNotification($pdo, [
-            'scholar_id' => $scholarId,
+            'scholar_id' => (int)$assignment['scholar_id'],
+            'assignment_id' => (int)$assignment['assignment_id'],
             'type' => 'STATUS_CHANGE',
             'subject' => $subject,
             'message' => $body,

@@ -24,10 +24,11 @@ $apply = in_array('--apply', $argv ?? [], true);
 // notifications table were never escaped on save, so they are deliberately not listed.
 $targets = [
     'users'             => ['email'],
-    'scholars'          => ['full_name', 'program'],
+    'scholars'          => ['fname', 'mname', 'lname', 'suffix'],
+    'programs'           => ['name'],
     'scholarship_types' => ['name', 'description'],
     'rules'             => ['threshold_value', 'school_year'],
-    'grades'            => ['subject', 'school_year'],
+    'requirements'       => ['name', 'description'],
     'documents'         => ['document_type', 'remarks', 'school_year'],
 ];
 

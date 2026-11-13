@@ -41,7 +41,7 @@ require_once __DIR__ . '/../includes/header.php';
     <form method="POST" action="">
         <?php echo csrfField(); ?>
         <label for="name">Name</label>
-        <input type="text" id="name" name="name" placeholder="e.g. Academic Scholarship, CHED, DOST" required>
+        <input type="text" id="name" name="name" placeholder="e.g. CHED, DOST, Mayor's Scholar, TES" required>
         <label for="description">Description</label>
         <input type="text" id="description" name="description" placeholder="Short description">
         <button type="submit">Add type</button>

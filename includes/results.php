@@ -23,7 +23,7 @@ function plainText(?string $value): string
 /** Turns $_GET into clean filters. Anything invalid becomes "no filter". */
 function normalizeResultFilters(array $get): array
 {
-    $program = $get['program'] ?? '';
+    $program = $get['program_id'] ?? ($get['program'] ?? '');
     $status = $get['status'] ?? '';
     $typeId = $get['scholarship_type_id'] ?? '';
     $search = $get['q'] ?? '';
@@ -31,7 +31,7 @@ function normalizeResultFilters(array $get): array
 
     return [
         'q' => function_exists('mb_substr') ? mb_substr($search, 0, 100) : substr($search, 0, 100),
-        'program' => is_string($program) ? trim($program) : '',
+        'program_id' => is_string($program) && ctype_digit($program) ? (int)$program : 0,
         'status' => (is_string($status) && in_array($status, ['PASS', 'FAIL', 'PENDING'], true)) ? $status : '',
         'scholarship_type_id' => (is_string($typeId) && ctype_digit($typeId)) ? (int)$typeId : 0,
     ];
@@ -61,8 +61,8 @@ function resultsQueryString(array $filters, array $paging = [], array $overrides
     if (($values['q'] ?? '') !== '') {
         $query['q'] = $values['q'];
     }
-    if (($values['program'] ?? '') !== '') {
-        $query['program'] = $values['program'];
+    if ((int)($values['program_id'] ?? 0) > 0) {
+        $query['program_id'] = (int)$values['program_id'];
     }
     if (($values['status'] ?? '') !== '') {
         $query['status'] = $values['status'];
@@ -79,12 +79,10 @@ function resultsQueryString(array $filters, array $paging = [], array $overrides
     return http_build_query($query);
 }
 
-/** The values the filter dropdowns can offer. Programs are kept exactly as stored. */
+/** The values the filter dropdowns can offer. */
 function getResultFilterOptions(PDO $pdo): array
 {
-    $programs = $pdo->query(
-        "SELECT DISTINCT program FROM scholars WHERE program IS NOT NULL AND program <> '' ORDER BY program"
-    )->fetchAll(PDO::FETCH_COLUMN);
+    $programs = $pdo->query('SELECT id, name FROM programs ORDER BY name')->fetchAll();
     $types = $pdo->query('SELECT id, name FROM scholarship_types ORDER BY name')->fetchAll();
 
     return ['programs' => $programs, 'statuses' => ['PASS', 'FAIL', 'PENDING'], 'types' => $types];
@@ -97,21 +95,22 @@ function resultsWhere(PDO $pdo, array $filters): array
     $where = [];
     $params = [];
 
-    $program = $filters['program'] ?? '';
-    if ($program !== '' && in_array($program, $options['programs'], true)) {
-        $where[] = 's.program = :program';
-        $params[':program'] = $program;
+    $programId = (int)($filters['program_id'] ?? 0);
+    $programIds = array_map('intval', array_column($options['programs'], 'id'));
+    if ($programId > 0 && in_array($programId, $programIds, true)) {
+        $where[] = 's.program_id = :program_id';
+        $params[':program_id'] = $programId;
     }
 
     $status = $filters['status'] ?? '';
     if (in_array($status, $options['statuses'], true)) {
-        $where[] = 's.current_status = :status';
+        $where[] = 'a.status = :status';
         $params[':status'] = $status;
     }
 
     $typeId = (int)($filters['scholarship_type_id'] ?? 0);
     if ($typeId > 0 && in_array($typeId, array_map('intval', array_column($options['types'], 'id')), true)) {
-        $where[] = 's.scholarship_type_id = :type_id';
+        $where[] = 'a.scholarship_type_id = :type_id';
         $params[':type_id'] = $typeId;
     }
 
@@ -122,8 +121,10 @@ function resultsWhere(PDO $pdo, array $filters): array
         $any = [];
         foreach ($spellings as $i => $spelling) {
             $like = '%' . addcslashes($spelling, '\\%_') . '%';
-            $any[] = "s.full_name LIKE :name{$i} OR u.email LIKE :email{$i}";
-            $params[":name{$i}"] = $like;
+            $any[] = '(' . scholarNameSearchSql('s', 'name' . $i) . ') OR u.email LIKE :email' . $i;
+            foreach (['fname', 'mname', 'lname', 'suffix'] as $part) {
+                $params[":name{$i}_{$part}"] = $like;
+            }
             $params[":email{$i}"] = $like;
         }
         $where[] = '(' . implode(' OR ', $any) . ')';
@@ -132,21 +133,24 @@ function resultsWhere(PDO $pdo, array $filters): array
     return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params];
 }
 
-/** Number of scholars matching the filters (ignores paging). */
+/** Number of scholarship assignments matching the filters (ignores paging). */
 function countResults(PDO $pdo, array $filters): int
 {
     [$whereSql, $params] = resultsWhere($pdo, $filters);
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) FROM scholars s
          JOIN users u ON u.id = s.user_id
-         JOIN scholarship_types st ON st.id = s.scholarship_type_id' . $whereSql
+         JOIN scholarship_assignments a ON a.scholar_id = s.id
+         JOIN scholarship_types st ON st.id = a.scholarship_type_id
+         LEFT JOIN programs p ON p.id = s.program_id
+         WHERE a.is_active = 1 AND a.ended_at IS NULL' . ($whereSql !== '' ? ' AND ' . substr($whereSql, 7) : '')
     );
     $stmt->execute($params);
     return (int)$stmt->fetchColumn();
 }
 
 /**
- * One row per scholar, with the office decision for the CURRENT term (null when none yet).
+ * One row per active assignment, with the office decision for the CURRENT term.
  * Without $limit every matching row is returned (the CSV export relies on that).
  */
 function getResults(PDO $pdo, array $filters, ?int $limit = null, int $offset = 0): array
@@ -155,16 +159,21 @@ function getResults(PDO $pdo, array $filters, ?int $limit = null, int $offset = 
     $params[':school_year'] = CURRENT_SCHOOL_YEAR;
     $params[':semester'] = CURRENT_SEMESTER;
 
-    $sql = 'SELECT s.id, s.full_name, s.program, s.year_level, s.current_gpa, s.current_units, s.current_status,
+    $sql = 'SELECT s.id, s.fname, s.mname, s.lname, s.suffix, s.program_id,
+                   p.name AS program, s.year_level, s.current_gwa, s.current_units,
+                   a.id AS assignment_id, a.status AS assignment_status,
                    u.email, st.name AS type_name,
                    rd.decision AS office_decision, rd.remarks AS decision_remarks
             FROM scholars s
             JOIN users u ON u.id = s.user_id
-            JOIN scholarship_types st ON st.id = s.scholarship_type_id
-            LEFT JOIN renewal_decisions rd ON rd.scholar_id = s.id
+            JOIN scholarship_assignments a ON a.scholar_id = s.id
+            JOIN scholarship_types st ON st.id = a.scholarship_type_id
+            LEFT JOIN programs p ON p.id = s.program_id
+            LEFT JOIN renewal_decisions rd ON rd.assignment_id = a.id
                  AND rd.school_year = :school_year AND rd.semester = :semester'
-        . $whereSql
-        . ' ORDER BY s.full_name, s.id';
+        . ' WHERE a.is_active = 1 AND a.ended_at IS NULL'
+        . ($whereSql !== '' ? ' AND ' . substr($whereSql, 7) : '')
+        . ' ORDER BY s.lname, s.fname, s.id, st.name';
     if ($limit !== null) {
         $sql .= ' LIMIT ' . max(1, $limit) . ' OFFSET ' . max(0, $offset);   // plain integers, never user text
     }
@@ -178,34 +187,54 @@ function getResults(PDO $pdo, array $filters, ?int $limit = null, int $offset = 
  * Active rules of the current term for one scholar, each with its latest result
  * (PENDING when the rule has not been evaluated yet) and the facts explainRuleResult() needs.
  */
-function getRuleBreakdown(PDO $pdo, int $scholarId, int $typeId): array
+function getRuleBreakdown(PDO $pdo, int $scholarId, int $assignmentId): array
 {
     $stmt = $pdo->prepare(
-        "SELECT r.id, r.rule_type, r.operator, r.threshold_value, r.due_date,
+        "SELECT r.id, r.rule_type, r.requirement_id, r.operator, r.threshold_value, r.due_date,
                 COALESCE(e.result, 'PENDING') AS result, e.evaluated_at,
-                s.current_gpa, s.current_units,
-                CASE WHEN r.rule_type = 'DOCUMENT' THEN (
-                    SELECT d.status FROM documents d
-                    WHERE d.scholar_id = s.id AND d.document_type = r.threshold_value
-                      AND d.school_year = :doc_year AND d.semester = :doc_semester
-                    ORDER BY d.uploaded_at DESC, d.id DESC LIMIT 1
-                ) END AS document_status
+                s.current_gwa, s.current_units, req.name AS requirement_name,
+                req.is_recurring
          FROM rules r
-         JOIN scholars s ON s.id = :scholar_id
+         JOIN scholarship_assignments a ON a.scholarship_type_id = r.scholarship_type_id
+         JOIN scholars s ON s.id = a.scholar_id
+         LEFT JOIN requirements req ON req.id = r.requirement_id
          LEFT JOIN evaluations e ON e.rule_id = r.id AND e.scholar_id = s.id
-         WHERE r.scholarship_type_id = :type_id AND r.is_active = 1
+         WHERE a.id = :assignment_id AND a.scholar_id = :scholar_id
+           AND r.is_active = 1
            AND r.school_year = :rule_year AND r.semester = :rule_semester
-         ORDER BY FIELD(r.rule_type, 'GPA', 'UNIT_LOAD', 'DOCUMENT', 'DEADLINE'), r.id"
+         ORDER BY FIELD(r.rule_type, 'GWA', 'UNIT_LOAD', 'DOCUMENT', 'DEADLINE'), r.id"
     );
     $stmt->execute([
-        ':doc_year' => CURRENT_SCHOOL_YEAR,
-        ':doc_semester' => CURRENT_SEMESTER,
         ':scholar_id' => $scholarId,
-        ':type_id' => $typeId,
+        ':assignment_id' => $assignmentId,
         ':rule_year' => CURRENT_SCHOOL_YEAR,
         ':rule_semester' => CURRENT_SEMESTER,
     ]);
-    return $stmt->fetchAll();
+    $rows = $stmt->fetchAll();
+    foreach ($rows as &$row) {
+        if (in_array($row['rule_type'], ['GWA', 'UNIT_LOAD'], true)) {
+            $record = getUsableGwaRecord($pdo, $scholarId, CURRENT_SCHOOL_YEAR, CURRENT_SEMESTER);
+            if ($row['rule_type'] === 'GWA') {
+                $row['gwa_value'] = $record['gwa'] ?? null;
+            } else {
+                $row['unit_load_value'] = $record['total_units'] ?? null;
+            }
+        } elseif ($row['rule_type'] === 'DOCUMENT') {
+            $documents = matchingDocumentRows($pdo, $row, $scholarId);
+            $row['document_status'] = null;
+            foreach ($documents as $document) {
+                if ($document['status'] === 'Verified') {
+                    $row['document_status'] = 'Verified';
+                    break;
+                }
+            }
+            if ($row['document_status'] === null && $documents) {
+                $row['document_status'] = $documents[0]['status'];
+            }
+        }
+    }
+    unset($row);
+    return $rows;
 }
 
 /** What the rule requires, in words. Built from stored values: print it with h(). */
@@ -215,15 +244,17 @@ function describeRule(array $rule): string
     $limit = $words[$rule['operator']] ?? $rule['operator'];
 
     switch ($rule['rule_type']) {
-        case 'GPA':
-            return 'GPA must be ' . $limit . ' ' . $rule['threshold_value'];
+        case 'GWA':
+            return 'GWA must be ' . $limit . ' ' . $rule['threshold_value'];
         case 'UNIT_LOAD':
             return 'Unit load must be ' . $limit . ' ' . $rule['threshold_value'];
         case 'DOCUMENT':
-            $text = 'Required document: ' . $rule['threshold_value'];
+            $text = 'Required document: ' . ($rule['requirement_name'] ?? $rule['threshold_value']);
             return empty($rule['due_date']) ? $text : $text . ' (due ' . $rule['due_date'] . ')';
-        default:
+        case 'DEADLINE':
             return 'Deadline rule: ' . $rule['threshold_value'];
+        default:
+            return 'Rule: ' . $rule['threshold_value'];
     }
 }
 
@@ -233,17 +264,25 @@ function explainRuleResult(array $row): string
     $result = $row['result'] ?? 'PENDING';
 
     switch ($row['rule_type']) {
-        case 'GPA':
-        case 'UNIT_LOAD':
-            $label = $row['rule_type'] === 'GPA' ? 'GPA' : 'Unit load';
-            $value = $row['rule_type'] === 'GPA' ? $row['current_gpa'] : $row['current_units'];
+        case 'GWA':
+            $value = $row['gwa_value'] ?? null;
             if ($value === null) {
-                return 'No grades recorded for this term yet.';
+                return 'No currently usable GWA from a verified Certificate of Grades for this term.';
             }
             if ($result === 'PENDING') {
-                return $label . ' is ' . $value . '; waiting for the next check.';
+                return 'GWA is ' . $value . '; waiting for the next check.';
             }
-            return $label . ' is ' . $value . ($result === 'PASS' ? ' — meets this rule.' : ' — does not meet this rule.');
+            return 'GWA is ' . $value . ($result === 'PASS' ? ' — meets this rule.' : ' — does not meet this rule.');
+
+        case 'UNIT_LOAD':
+            $value = $row['unit_load_value'] ?? null;
+            if ($value === null) {
+                return 'No currently usable total-units value from a verified Certificate of Grades for this term.';
+            }
+            if ($result === 'PENDING') {
+                return 'Total units are ' . $value . '; waiting for the next check.';
+            }
+            return 'Total units are ' . $value . ($result === 'PASS' ? ' — meets this rule.' : ' — does not meet this rule.');
 
         case 'DOCUMENT':
             switch ($row['document_status'] ?? null) {

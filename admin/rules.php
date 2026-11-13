@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/auth_check.php';
 $pdo = getDbConnection();
 $message = '';
 $types = $pdo->query('SELECT * FROM scholarship_types ORDER BY name')->fetchAll();
+$requirements = $pdo->query('SELECT id, name FROM requirements WHERE is_active = 1 ORDER BY name')->fetchAll();
 // Read-only list filter from the URL (?type=ID). Anything that is not an existing type means "all".
 $typeFilter = is_string($_GET['type'] ?? null) && ctype_digit($_GET['type']) ? (int)$_GET['type'] : 0;
 if (!in_array($typeFilter, array_map('intval', array_column($types, 'id')), true)) {
@@ -50,12 +51,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $v = $result['values'];
         $stmt = $pdo->prepare(
-            'INSERT INTO rules (scholarship_type_id, rule_type, operator, threshold_value, school_year, semester, due_date, is_active)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)'
+            'INSERT INTO rules (scholarship_type_id, rule_type, requirement_id, operator, threshold_value, school_year, semester, due_date, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)'
         );
-        $stmt->execute([$v['scholarship_type_id'], $v['rule_type'], $v['operator'], $v['threshold_value'],
-                        $v['school_year'], $v['semester'], $v['due_date']]);
-        // Scholars' statuses must reflect the new rule right away, not only after their next grade save.
+        $stmt->execute([$v['scholarship_type_id'], $v['rule_type'], $v['requirement_id'], $v['operator'],
+                        $v['threshold_value'], $v['school_year'], $v['semester'], $v['due_date']]);
+        // Assignment statuses must reflect the new rule right away.
         reevaluateScholarshipType($pdo, $v['scholarship_type_id']);
         redirectTo($rulesUrl($typeFilter > 0 ? $v['scholarship_type_id'] : 0));
     }
@@ -73,8 +74,9 @@ if ($statusFilter !== 'all') {
     $params[] = $statusFilter === 'active' ? 1 : 0;
 }
 $stmt = $pdo->prepare(
-    'SELECT r.*, st.name AS type_name FROM rules r
-     JOIN scholarship_types st ON st.id = r.scholarship_type_id'
+    'SELECT r.*, st.name AS type_name, req.name AS requirement_name FROM rules r
+     JOIN scholarship_types st ON st.id = r.scholarship_type_id
+     LEFT JOIN requirements req ON req.id = r.requirement_id'
     . ($conditions ? ' WHERE ' . implode(' AND ', $conditions) : '')
     . ' ORDER BY r.is_active DESC, st.name, r.rule_type'
 );
@@ -106,9 +108,10 @@ require_once __DIR__ . '/../includes/header.php';
 
         <label for="rule_type">Rule type</label>
         <select id="rule_type" name="rule_type" required>
-            <option value="GPA">GPA</option>
+            <option value="GWA">GWA</option>
             <option value="UNIT_LOAD">Unit load</option>
             <option value="DOCUMENT">Document</option>
+            <option value="DEADLINE">Deadline (not evaluated yet)</option>
         </select>
 
         <div id="operator_group">
@@ -122,8 +125,16 @@ require_once __DIR__ . '/../includes/header.php';
         </select>
         </div>
 
-        <label for="threshold_value" id="threshold_label">Minimum / maximum value</label>
-        <input type="text" id="threshold_value" name="threshold_value" placeholder="e.g. 2.00 for GPA, 18 for units" required>
+        <label for="threshold_value" id="threshold_label">Threshold</label>
+        <input type="text" id="threshold_value" name="threshold_value" placeholder="Numeric threshold" required>
+
+        <label for="requirement_id">Requirement (for DOCUMENT rule)</label>
+        <select id="requirement_id" name="requirement_id">
+            <option value="">Use exact legacy document label instead</option>
+            <?php foreach ($requirements as $requirement): ?>
+                <option value="<?php echo (int)$requirement['id']; ?>"><?php echo h($requirement['name']); ?></option>
+            <?php endforeach; ?>
+        </select>
 
         <label for="school_year">School year</label>
         <input type="text" id="school_year" name="school_year" value="<?php echo CURRENT_SCHOOL_YEAR; ?>" placeholder="2026-2027" required>
@@ -145,19 +156,28 @@ require_once __DIR__ . '/../includes/header.php';
     <script>
         var ruleType = document.getElementById('rule_type');
         var threshold = document.getElementById('threshold_value');
+        var requirement = document.getElementById('requirement_id');
 
         function updateRuleForm() {
             var isDocument = ruleType.value === 'DOCUMENT';
+            var isMappedDocument = isDocument && requirement.value !== '';
             document.getElementById('operator_group').style.display = isDocument ? 'none' : '';
             document.getElementById('due_date_group').style.display = isDocument ? '' : 'none';
-            document.getElementById('threshold_label').textContent = isDocument ? 'Document name (exact)' : 'Minimum / maximum value';
-            threshold.type = isDocument ? 'text' : 'number';
+            requirement.disabled = !isDocument;
+            threshold.required = !isMappedDocument;
+            threshold.disabled = isMappedDocument;
+            document.getElementById('threshold_label').textContent = isDocument
+                ? (isMappedDocument ? 'Legacy document name (not needed for a mapped requirement)' : 'Legacy document name (exact, if unmapped)')
+                : 'Threshold';
+            threshold.type = 'text';
             threshold.step = 'any';
             threshold.min = '0';
-            threshold.placeholder = isDocument ? 'e.g. Certificate of Registration' : 'e.g. 2.00 for GPA, 18 for units';
+            threshold.placeholder = isMappedDocument ? 'Using the selected requirement'
+                : (isDocument ? 'Only needed for an unmapped legacy rule' : 'Numeric threshold; UNIT_LOAD uses verified Certificate of Grades units');
         }
 
         ruleType.addEventListener('change', updateRuleForm);
+        requirement.addEventListener('change', updateRuleForm);
         updateRuleForm();
     </script>
     <?php endif; ?>

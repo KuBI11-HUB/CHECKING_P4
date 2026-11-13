@@ -1,0 +1,223 @@
+/* ---- Theme: light is the default. html[data-theme="dark"] overrides the same variables. Script: includes/theme_head.php ---- */
+:root {
+    --ul-link: var(--ul-maroon);
+    --ul-link-hover: var(--ul-maroon-dark);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --ul-bg: #141212;
+    --ul-surface: #1D1B1B;
+    --ul-text: #ECE8E6;
+    --ul-muted: #B0A8A6;
+    --ul-border: #363131;
+    --ul-border-input: #7C7371;
+    --ul-link: #FFFFFF;
+    --ul-link-hover: #FFFFFF;
+    --color-accent-hover: #8B140A;
+    --color-pass: #7FD3AE;
+    --color-fail: #F1A38C;
+    --color-pending: #D9A441;
+    --color-pending-text: #E9C46A;
+    --tint-pass: #173228;
+    --tint-fail: #40211B;
+    --tint-pending: #3A2D10;
+    --tint-info: #342C14;
+    --tint-row: #2A2727;
+}
+
+html[data-theme="dark"] ::placeholder { color: var(--ul-muted); opacity: 1; }
+
+:where(html[data-theme="dark"]) :is(a, button, summary):focus-visible { outline-color: var(--ul-link); }
+:where(html[data-theme="dark"]) :is(form input, form select, form textarea):focus { outline-color: var(--ul-link); border-color: var(--ul-link); }
+html[data-theme="dark"] .dropzone:hover,
+html[data-theme="dark"] .dropzone:focus-within,
+html[data-theme="dark"] .dropzone.is-dragover {
+    border-color: var(--ul-link);
+}
+html[data-theme="dark"] .dropzone:focus-within { outline-color: var(--ul-link); }
+
+html[data-theme="dark"] .back-link,
+html[data-theme="dark"] .portal-topbar__brand,
+html[data-theme="dark"] .error-card__brand { color: var(--ul-link); }
+html[data-theme="dark"] .login-split__title { color: var(--ul-text); }
+html[data-theme="dark"] .back-link:hover { color: var(--ul-link-hover); background: rgba(255, 255, 255, 0.12); }
+html[data-theme="dark"] .rule-list__action--edit { color: var(--ul-link); border-color: var(--ul-link); }
+html[data-theme="dark"] .rule-list__action--edit:hover { color: #FFFFFF; }
+
+html[data-theme="dark"] .status-badge--pass,
+html[data-theme="dark"] .form-success,
+html[data-theme="dark"] .flash--success { background: var(--tint-pass); }
+html[data-theme="dark"] .status-badge--fail,
+html[data-theme="dark"] .form-error,
+html[data-theme="dark"] .flash--error { background: var(--tint-fail); }
+html[data-theme="dark"] .status-badge--pending { background: var(--tint-pending); }
+html[data-theme="dark"] .form-info { background: var(--tint-info); }
+html[data-theme="dark"] .btn.btn--danger:hover,
+html[data-theme="dark"] button[type="submit"].btn--danger:hover { background: var(--tint-fail); }
+html[data-theme="dark"] .rule-list__action--deactivate:hover,
+html[data-theme="dark"] .rule-list__actions button[type="submit"].rule-list__action--deactivate:hover {
+    background: #7A2A18; color: #FFFFFF;
+}
+
+html[data-theme="dark"] table.data-table:not(.data-table--sticky) th { background: var(--tint-row); }
+html[data-theme="dark"] table.data-table--sticky th { background: var(--ul-bg); color: var(--ul-muted); box-shadow: 0 1px 0 var(--ul-border); }
+html[data-theme="dark"] table.data-table tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
+
+html[data-theme="dark"] .site-header,
+html[data-theme="dark"] .portal-sidebar {
+    background-color: var(--ul-surface);
+    color: var(--ul-text);
+}
+html[data-theme="dark"] .site-header { border-bottom-color: var(--ul-border); }
+html[data-theme="dark"] .portal-sidebar { border-color: var(--ul-border); }
+html[data-theme="dark"] .site-header__nav a,
+html[data-theme="dark"] .portal-sidebar__nav a { background-color: transparent; }
+html[data-theme="dark"] .site-main a.status-chip:hover,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .shell-notice,
+html[data-theme="dark"] .dropzone,
+html[data-theme="dark"] .file-chip,
+html[data-theme="dark"] .error-card,
+html[data-theme="dark"] .table-scroll,
+html[data-theme="dark"] .filter-chip,
+html[data-theme="dark"] .status-chip,
+html[data-theme="dark"] .site-header__brand,
+html[data-theme="dark"] .site-header__nav a,
+html[data-theme="dark"] .portal-sidebar__nav a,
+html[data-theme="dark"] .portal-sidebar__brand,
+html[data-theme="dark"] .portal-topbar__brand,
+html[data-theme="dark"] .portal-sidebar__identity {
+    color: var(--ul-text);
+}
+
+html[data-theme="dark"] .site-header__nav a:hover,
+html[data-theme="dark"] .portal-sidebar__nav a:hover,
+html[data-theme="dark"] .portal-sidebar__nav a.is-active,
+html[data-theme="dark"] .site-header__nav a:focus-visible,
+html[data-theme="dark"] .portal-sidebar__nav a:focus-visible {
+    background: var(--tint-row);
+}
+html[data-theme="dark"] .portal-sidebar__nav a.is-active { color: var(--ul-link); }
+
+html[data-theme="dark"] .card, html[data-theme="dark"] .shell-notice, html[data-theme="dark"] .error-card, html[data-theme="dark"] .file-chip {
+    background: var(--ul-surface);
+    border-color: var(--ul-border);
+}
+html[data-theme="dark"] .error-card { border-top-color: var(--ul-link); }
+
+html[data-theme="dark"] .site-main a:not(.btn):hover { color: var(--ul-link-hover); }
+html[data-theme="dark"] .btn.btn--secondary, html[data-theme="dark"] button[type="submit"].btn--secondary {
+    background: var(--ul-surface); color: var(--ul-text); border-color: var(--ul-border-input);
+}
+html[data-theme="dark"] .btn.btn--secondary:hover, html[data-theme="dark"] button[type="submit"].btn--secondary:hover { background: var(--ul-bg); }
+html[data-theme="dark"] .status-chip { background: var(--ul-surface); color: var(--ul-text); }
+html[data-theme="dark"] .status-chip[aria-current="true"], html[data-theme="dark"] .site-main a.status-chip[aria-current="true"]:hover {
+    background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent);
+}
+html[data-theme="dark"] .search-form input,
+html[data-theme="dark"] .filter-form input,
+html[data-theme="dark"] .filter-form select,
+html[data-theme="dark"] .filter-form textarea,
+html[data-theme="dark"] form input,
+html[data-theme="dark"] form select,
+html[data-theme="dark"] form textarea {
+    background: var(--ul-surface); color: var(--ul-text);
+    border-color: var(--ul-border-input);
+}
+html[data-theme="dark"] .portal-sidebar__org { color: var(--ul-muted); }
+html[data-theme="dark"] .portal-sidebar__name,
+html[data-theme="dark"] .portal-topbar__brand,
+html[data-theme="dark"] .site-header__brand { color: var(--ul-link); }
+html[data-theme="dark"] .file-chip__remove:hover { background: var(--ul-bg); border-color: var(--ul-border-input); }
+
+html[data-theme="dark"] body { background: var(--ul-bg); color: var(--ul-text); }
+html[data-theme="dark"] body .portal-shell { background: var(--ul-bg); }
+html[data-theme="dark"] body .portal-shell .portal-content,
+html[data-theme="dark"] body .portal-shell .site-main { background: transparent; }
+html[data-theme="dark"] body .portal-shell .portal-topbar {
+    background: var(--ul-surface);
+    border-bottom-color: var(--ul-border);
+}
+
+.theme-choice { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.theme-choice__option {
+    display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 1rem;
+    border: 1px solid var(--ul-border-input); border-radius: var(--radius-control); background: var(--ul-surface);
+    color: var(--ul-text); cursor: pointer;
+}
+.theme-choice__option input { width: auto; margin: 0; padding: 0; accent-color: var(--ul-link); }
+.theme-choice__option:has(input:checked) { border-color: var(--ul-link); box-shadow: inset 0 0 0 1px var(--ul-link); font-weight: 600; }
+.theme-choice__option:has(input:focus-visible) { outline: 2px solid var(--ul-link); outline-offset: 2px; }
+
+html[data-theme="dark"] table.data-table td:not(.empty-state) > a:not(.btn) {
+    color: var(--ul-text);
+    text-decoration-color: var(--ul-muted);
+    text-underline-offset: 0.2em;
+}
+html[data-theme="dark"] table.data-table td:not(.empty-state) > a:not(.btn):hover {
+    color: #FFFFFF;
+    text-decoration-color: currentColor;
+}
+html[data-theme="dark"] table.data-table a > .icon-label { text-decoration-color: var(--ul-muted); }
+html[data-theme="dark"] table.data-table a:hover > .icon-label { text-decoration-color: currentColor; }
+html[data-theme="dark"] table.data-table a > .icon-label .ui-icon { color: var(--ul-muted); }
+html[data-theme="dark"] table.data-table a:hover > .icon-label .ui-icon { color: currentColor; }
+
+html[data-theme="dark"] form :is(input, select, textarea):is(:focus, :focus-visible) {
+    border-color: #C4BCBA;
+    outline: 2px solid #C4BCBA;
+}
+html[data-theme="dark"] .dropzone:hover,
+html[data-theme="dark"] .dropzone:focus-within,
+html[data-theme="dark"] .dropzone.is-dragover {
+    border-color: #C4BCBA;
+}
+html[data-theme="dark"] .dropzone:hover { box-shadow: none; }
+html[data-theme="dark"] .account-menu__panel { box-shadow: none; }
+html[data-theme="dark"] .dropzone:focus-within { outline: 2px solid #C4BCBA; }
+html[data-theme="dark"] .theme-choice__option:has(input:checked) {
+    border-color: #C4BCBA;
+    box-shadow: inset 0 0 0 1px #C4BCBA;
+}
+html[data-theme="dark"] .theme-choice__option:has(input:focus-visible) {
+    outline: 2px solid #C4BCBA;
+}
+
+html[data-theme="dark"] .rule-list__summary { color: var(--ul-text); }
+
+html:not([data-theme="dark"]) .portal-sidebar {
+    --portal-shell-maroon: var(--ul-maroon);
+    --portal-shell-maroon-border: var(--ul-maroon-dark);
+    background-color: var(--portal-shell-maroon);
+    color: #FFFFFF;
+}
+html:not([data-theme="dark"]) .portal-sidebar { border-color: var(--portal-shell-maroon-border); }
+html:not([data-theme="dark"]) .portal-sidebar__brand { border-bottom-color: var(--portal-shell-maroon-border); }
+html:not([data-theme="dark"]) .portal-sidebar__name { color: #FFFFFF; }
+html:not([data-theme="dark"]) .portal-topbar__brand { color: var(--color-accent); }
+html:not([data-theme="dark"]) .portal-sidebar__org { color: rgba(255, 255, 255, 0.78); }
+html:not([data-theme="dark"]) .portal-sidebar__nav a:hover,
+html:not([data-theme="dark"]) .portal-sidebar__nav a:focus-visible {
+    background: rgba(255, 255, 255, 0.05);
+    color: #FFFFFF;
+}
+html:not([data-theme="dark"]) .portal-sidebar__nav a.is-active {
+    background: rgba(255, 255, 255, 0.09);
+    color: #FFFFFF;
+}
+html:not([data-theme="dark"]) .portal-sidebar a:focus-visible { outline-color: #FFFFFF; }
+html:not([data-theme="dark"]) .portal-topbar__brand:focus-visible { outline-color: var(--color-accent); }
+
+@keyframes account-menu-in { from { opacity: 0; } to { opacity: 1; } }
+.account-menu[open] .account-menu__panel { animation: account-menu-in 180ms ease both; }
+
+button, .btn { transition: transform 90ms ease; }
+button:not(:disabled):active, .btn:active { transform: scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+    .account-menu[open] .account-menu__panel { animation: none; }
+    button, .btn { transition: none; }
+    button:not(:disabled):active, .btn:active { transform: none; }
+}

@@ -148,15 +148,15 @@ Expected: `Sent. Gmail message id: …`. Check the inbox (and Spam). The message
 In the browser, open **http://localhost/GRANTED/config/gmail_token.json**. You must see **403 Forbidden**. If you see JSON text, `.htaccess` isn't active on your Apache. Fix that before this ever runs anywhere other than your own laptop. (XAMPP normally honors it.)
 
 ### C4. How it is wired in (nothing for you to do)
-`evaluateScholar()` in `includes/rule_engine.php` remembers the scholar's old status, saves the new one, then calls `notifyStatusChange()`. That function does nothing if the status didn't change. Otherwise it saves a `STATUS_CHANGE` row in `notifications` and emails it. Any email failure is recorded as `FAILED` and **never** interrupts saving a grade or reviewing a document.
+`evaluateAssignment()` in `includes/rule_engine.php` saves each active scholarship assignment's calculated status. When it changes, the system saves an assignment-linked `STATUS_CHANGE` row in `notifications` and attempts to email it. Any email failure is recorded as `FAILED` and **never** interrupts saving GWA or reviewing a document.
 
-A status also changes when an admin adds or deactivates a rule, because every scholar on that scholarship type is re-evaluated. With `MAIL_ENABLED` on, those scholars are emailed too.
+A status also changes when an admin adds or deactivates a rule, because each active assignment for that scholarship type is re-evaluated. With `MAIL_ENABLED` on, affected scholars are emailed.
 
 ### C5. Test it end to end
-1. Enroll a scholar whose login email is an address you can read. Add a GPA rule they will pass and enter a passing grade.
-2. Their status changes `PENDING → PASS`, so you should receive the email within a few seconds.
+1. Enroll a scholar whose login email is an address you can read. Add a GWA rule and enter an official GWA backed by a verified Certificate of Grades.
+2. Their assignment status changes (for example, `PENDING → PASS`), so you should receive the email within a few seconds.
 3. In phpMyAdmin run `SELECT id, type, send_status, error_message FROM notifications ORDER BY id DESC;`. The newest row should say `SENT`.
-4. Failure test: rename `config/gmail_token.json` to `gmail_token.json.bak`, trigger another status change. The grade must still save, and the row should say `FAILED` with an explanation. Rename the file back.
+4. Failure test: rename `config/gmail_token.json` to `gmail_token.json.bak`, trigger another status change. The GWA save or document review must still succeed, and the row should say `FAILED` with an explanation. Rename the file back.
 
 ### C6. Schedule the daily reminders (Windows Task Scheduler)
 1. Start menu → **Task Scheduler** → **Create Basic Task**. Name: `GRANTED deadline reminders`.
@@ -166,7 +166,7 @@ A status also changes when an admin adds or deactivates a rule, because every sc
    - **Add arguments:** `C:\xampp\htdocs\GRANTED\cron\send_deadline_reminders.php`
    - **Start in:** `C:\xampp\htdocs\GRANTED`
 4. Finish. Then right-click the task → **Run** to test it.
-5. **Also schedule the daily re-evaluation, 5 minutes earlier.** Make a second task the same way (Daily, **7:55 AM**) with **Add arguments:** `C:\xampp\htdocs\GRANTED\tools\reevaluate_all.php`. It refreshes every scholar's status, so a document deadline that passed overnight turns into FAIL before the 8:00 reminders run.
+5. **Also schedule the daily re-evaluation, 5 minutes earlier.** Make a second task the same way (Daily, **7:55 AM**) with **Add arguments:** `C:\xampp\htdocs\GRANTED\tools\reevaluate_all.php`. It refreshes active assignments, so a document deadline that passed overnight turns into FAIL before the 8:00 reminders run.
 
 **Who gets a reminder:** a scholar gets **one** reminder per document rule when the rule is active for the current term, its **Document deadline** is today or within the next `DEADLINE_REMINDER_DAYS` days (default 7), and the scholar's latest upload of that document is missing or Rejected. A document that is Verified, or uploaded and waiting for review, needs no reminder. A reminder that failed to send is retried on the next run.
 
